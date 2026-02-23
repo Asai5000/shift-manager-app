@@ -91,7 +91,7 @@ export async function updateEmployee(id: number, formData: FormData) {
 
 export async function reorderEmployees(items: { id: number; displayOrder: number }[]) {
     try {
-        await db.transaction(async (tx) => {
+        await db.transaction(async (tx: typeof db) => {
             for (const item of items) {
                 await tx.update(employees)
                     .set({ displayOrder: item.displayOrder })

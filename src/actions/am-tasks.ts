@@ -365,7 +365,7 @@ export async function getEarlyShiftStats(year: number, excludedMonth: number): P
         });
 
         const stats: Record<number, number> = {};
-        assignments.forEach(a => {
+        assignments.forEach((a: typeof assignments[number]) => {
             stats[a.employeeId] = (stats[a.employeeId] || 0) + 1;
         });
 

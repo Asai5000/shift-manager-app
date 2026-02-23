@@ -23,7 +23,7 @@ export async function getMonthlySchedules(year: number, month: number) {
             ));
 
         // Expand recurring schedules
-        const expandedData = data.map(schedule => {
+        const expandedData = data.map((schedule: typeof data[number]) => {
             if (schedule.type === 'date_specific') {
                 return schedule;
             }

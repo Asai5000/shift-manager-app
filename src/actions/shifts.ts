@@ -99,9 +99,10 @@ export async function saveShift(
                 const existingAssignments = await db.select().from(amAssignments)
                     .where(eq(amAssignments.date, data.date));
 
-                const assignmentMap = new Map(existingAssignments.map(a => [a.employeeId, a]));
+                type AssignmentRow = typeof existingAssignments[number];
+                const assignmentMap = new Map<number, AssignmentRow>(existingAssignments.map((a: AssignmentRow) => [a.employeeId, a]));
 
-                const newRests = [];
+                const newRests: { employeeId: number; date: string; taskName: string; isAutoAssigned: boolean }[] = [];
                 for (const emp of employees) {
                     if (emp.id === data.employeeId) continue;
 
@@ -204,7 +205,7 @@ export async function bulkDeleteShifts(params: {
         const targetShifts = await db.select().from(shifts).where(and(...filters));
 
         if (targetShifts.length > 0) {
-            const restingShifts = targetShifts.filter(s => s.type.includes('休') || s.type.includes('出張') || s.type.includes('特別休暇') || s.type.includes('出勤'));
+            const restingShifts = targetShifts.filter((s: typeof targetShifts[number]) => s.type.includes('休') || s.type.includes('出張') || s.type.includes('特別休暇') || s.type.includes('出勤'));
             const holidayWorkDates = new Set<string>();
 
             // Delete shifts

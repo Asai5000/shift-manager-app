@@ -79,7 +79,7 @@ export default function ScheduleTasksPMPage() {
                     const shiftMap: Record<string, string> = {};
                     const hwDates = new Set<string>();
 
-                    shiftsRes.data.forEach(s => {
+                    shiftsRes.data.forEach((s: typeof shiftsRes.data[number]) => {
                         shiftMap[`${s.employeeId}-${s.date}`] = s.type;
                         if (s.type.includes('休日出勤')) {
                             hwDates.add(s.date);
@@ -92,7 +92,7 @@ export default function ScheduleTasksPMPage() {
                 const schedRes = await getMonthlySchedules(year, month);
                 if (schedRes.success && schedRes.data) {
                     const schedMap: Record<string, { text: string; shortText: string | null }> = {};
-                    schedRes.data.forEach(s => {
+                    schedRes.data.forEach((s: typeof schedRes.data[number]) => {
                         if (s.employeeId && s.isVisible !== false) {
                             schedMap[`${s.employeeId}-${s.date}`] = {
                                 text: s.text,

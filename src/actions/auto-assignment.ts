@@ -170,7 +170,7 @@ export async function generateAutoAssignments(params: AutoAssignmentParams): Pro
         const scheduledDatesByEmp: Record<number, Set<string>> = {};
         employees.forEach(emp => scheduledDatesByEmp[emp.id] = new Set());
         if (schedulesRes.data) {
-            schedulesRes.data.forEach(s => {
+            schedulesRes.data.forEach((s: typeof schedulesRes.data[number]) => {
                 if (s.employeeId && s.date && scheduledDatesByEmp[s.employeeId]) {
                     scheduledDatesByEmp[s.employeeId].add(s.date);
                 }
