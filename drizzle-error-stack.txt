@@ -1,0 +1,6 @@
+TypeError: Transaction function cannot return a promise
+    at Function.sqliteTransaction (C:\Users\kense\code\shift-manager-app\node_modules\better-sqlite3\lib\methods\transaction.js:67:10)
+    at BetterSQLiteSession.transaction (C:\Users\kense\code\shift-manager-app\node_modules\src\better-sqlite3\session.ts:81:48)
+    at BetterSQLite3Database.transaction (C:\Users\kense\code\shift-manager-app\node_modules\src\sqlite-core\db.ts:593:23)
+    at generateAMAutoAssignments (C:\Users\kense\code\shift-manager-app\src\actions\am-tasks.ts:309:18)
+    at async run (C:\Users\kense\code\shift-manager-app\test-auto-assign.ts:7:24)

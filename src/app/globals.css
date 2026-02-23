@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-inter), var(--font-noto-sans-jp), sans-serif;
+  --color-primary: #2563eb;
+  /* blue-600 */
+  --color-primary-foreground: #ffffff;
+
+  /* Centralize mobile switch breakpoint to 1200px */
+  --breakpoint-xl: 1200px;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #0f172a;
+  /* slate-900 */
+}
+
+/* Force light mode regardless of system preference for now to adhere to user request "black background is hard to read" */
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+@media print {
+  @page {
+    size: A3 portrait;
+    margin: 5mm;
+  }
+
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Hide everything by default */
+  body {
+    visibility: hidden;
+  }
+
+  /* Only show the print view container */
+  #calendar-print-view {
+    visibility: visible;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Ensure children of the print view are visible */
+  #calendar-print-view * {
+    visibility: visible;
+  }
+
+  /* Hide specific UI elements within the calendar that shouldn't print */
+  .no-print {
+    display: none !important;
+  }
+}

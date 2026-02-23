@@ -1,0 +1,68 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": "t1",
+      "name": "院外監査",
+      "bgColor": "bg-slate-100",
+      "textColor": "text-slate-800",
+      "order": 1,
+      "isFallback": false,
+      "excludeFromAuto": false
+    },
+    {
+      "id": "t2",
+      "name": "注射監査",
+      "bgColor": "bg-yellow-50",
+      "textColor": "text-slate-800",
+      "order": 2,
+      "isFallback": false,
+      "excludeFromAuto": false
+    },
+    {
+      "id": "t3",
+      "name": "ミキシング・散剤",
+      "bgColor": "bg-orange-400",
+      "textColor": "text-white",
+      "order": 3,
+      "isFallback": false,
+      "excludeFromAuto": false
+    },
+    {
+      "id": "t4",
+      "name": "処方薬調剤",
+      "bgColor": "bg-yellow-300",
+      "textColor": "text-slate-800",
+      "order": 4,
+      "isFallback": false,
+      "excludeFromAuto": false
+    },
+    {
+      "id": "t5",
+      "name": "外来",
+      "bgColor": "bg-white",
+      "textColor": "text-red-500",
+      "order": 5,
+      "isFallback": false,
+      "excludeFromAuto": false
+    },
+    {
+      "id": "t6",
+      "name": "病棟",
+      "bgColor": "bg-blue-500",
+      "textColor": "text-white",
+      "order": 6,
+      "isFallback": false,
+      "excludeFromAuto": false
+    },
+    {
+      "id": "t7",
+      "name": "散剤混注",
+      "bgColor": "bg-amber-500",
+      "textColor": "text-white",
+      "order": 7,
+      "isFallback": false,
+      "excludeFromAuto": false
+    }
+  ]
+}
