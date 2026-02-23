@@ -45,7 +45,7 @@ export async function getAMTaskOptions(): Promise<{ success: boolean; data?: Tas
         }
 
         // Map to expected structure
-        const mapped = options.map(opt => ({
+        const mapped = options.map((opt: typeof options[number]) => ({
             id: opt.id,
             name: opt.name,
             bgColor: opt.bgColor,
