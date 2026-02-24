@@ -252,6 +252,11 @@ export default function ScheduleTasksAMPage() {
         return colorClass.split(' ').filter(c => c.startsWith('text-') || c.startsWith('font-')).join(' ') || 'text-slate-800';
     };
 
+    // モバイルselect用: colorClassからbg/borderのみ抽出（text-/font-を除外）
+    const getBgColorOnly = (colorClass: string) => {
+        return colorClass.split(' ').filter(c => !c.startsWith('text-') && !c.startsWith('font-')).join(' ');
+    };
+
     // Task Management Actions
     const handleUpdateOptions = async (newOptions: TaskOption[]) => {
         setTaskOptions(newOptions);
@@ -775,7 +780,7 @@ export default function ScheduleTasksAMPage() {
                                                             </span>
                                                             {/* モバイル用select（テキスト非表示） */}
                                                             <select
-                                                                className={`xl:hidden print:hidden w-full min-w-0 h-full px-0 text-center font-bold text-transparent text-[10px] rounded border appearance-none cursor-pointer focus:ring-2 focus:ring-blue-400 focus:outline-none transition-colors ${colorClass} ${task === '' ? 'print:text-transparent' : ''}`}
+                                                                className={`xl:hidden print:hidden w-full min-w-0 h-full px-0 text-center text-transparent text-[0px] rounded border appearance-none cursor-pointer focus:ring-2 focus:ring-blue-400 focus:outline-none transition-colors ${getBgColorOnly(colorClass)} ${task === '' ? 'print:text-transparent' : ''}`}
                                                                 value={task}
                                                                 onChange={(e) => {
                                                                     if (e.target.value === '__free__') {
