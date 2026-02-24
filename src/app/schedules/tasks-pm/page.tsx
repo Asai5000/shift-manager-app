@@ -195,49 +195,64 @@ export default function ScheduleTasksPMPage() {
                     visibility: visible !important;
                 }
                 
+                /* テーブル基本設定（AMと統一） */
                 #pm-task-print-view table {
                     width: 100% !important;
                     max-width: 100% !important;
                     table-layout: fixed !important;
-                    font-size: 11px !important;
+                    font-size: 13px !important;
                     margin: 0 auto !important;
                     transform: scale(0.93);
                     transform-origin: top center;
                 }
                 
+                /* セルの均一高さ (休もタスクも同じ) */
                 #pm-task-print-view th, #pm-task-print-view td {
                     padding: 3px 2px !important;
-                    height: auto !important;
                     border: 1px solid #64748b !important;
+                }
+                #pm-task-print-view td > div,
+                #pm-task-print-view td > select {
+                    min-height: 40px !important;
+                    height: 40px !important;
+                    font-size: 13px !important;
+                }
+                
+                /* 日付ヘッダーのフォント拡大 */
+                #pm-task-print-view thead th {
+                    font-size: 14px !important;
+                    padding: 4px 2px !important;
+                }
+                #pm-task-print-view thead th div {
+                    font-size: 14px !important;
                 }
                 
                 #pm-task-print-view .bg-slate-200 {
                     background-color: white !important;
                     font-size: 18px !important;
                 }
-                
                 #pm-task-print-view .bg-blue-50 {
                     background-color: white !important;
                     border-color: transparent !important;
                 }
                 
-                /* Prevent row breaks */
+                /* 改行防止 */
                 #pm-task-print-view tr {
                     page-break-inside: avoid !important;
                 }
                 
-                /* Increase font size for employee names (first column) */
+                /* 従業員名（第1列）- AMと統一 */
                 #pm-task-print-view tbody td:first-child,
                 #pm-task-print-view tbody td:first-child *,
                 #pm-task-print-view thead th:first-child {
                     font-size: 16px !important;
                     font-weight: 900 !important;
                 }
-                
                 #pm-task-print-view thead th:first-child {
-                    width: 38mm !important; 
+                    width: 32mm !important;
                 }
                 
+                /* ページ分割の完全防止 */
                 * {
                     page-break-inside: avoid !important;
                     page-break-before: avoid !important;
@@ -246,6 +261,12 @@ export default function ScheduleTasksPMPage() {
                     break-before: avoid !important;
                     break-after: avoid !important;
                 }
+
+                .no-print {
+                    display: none !important;
+                }
+
+                /* 印刷時にデスクトップレイアウトを強制はprint:バリアントで対応 */
             `}</style>
 
             <div className="mb-2 xl:mb-4 no-print flex-shrink-0">
@@ -322,13 +343,13 @@ export default function ScheduleTasksPMPage() {
                             <thead className="sticky top-0 z-20 bg-slate-50 shadow-sm border-b border-slate-200">
                                 <tr>
                                     <th className="p-1 xl:p-3 text-left font-bold text-slate-700 border-r border-slate-200 min-w-[50px] xl:min-w-[120px] sticky left-0 z-30 bg-slate-50">
-                                        <span className="hidden xl:inline">従業員名</span>
-                                        <span className="xl:hidden">名前</span>
+                                        <span className="hidden xl:inline print:inline">従業員名</span>
+                                        <span className="xl:hidden print:hidden">名前</span>
                                     </th>
                                     {displayDays.map(day => (
                                         <th key={day.dateStr} className="p-0.5 xl:p-2 text-center border-r border-slate-200 min-w-[40px] xl:min-w-[120px]">
-                                            <div className="font-bold text-slate-800 text-[10px] xl:text-sm">{format(day.date, 'E', { locale: ja })}</div>
-                                            <div className="text-xs xl:text-lg">{format(day.date, 'd')}<span className="hidden xl:inline">/{format(day.date, 'M')}</span></div>
+                                            <div className="font-bold text-slate-800 text-[10px] xl:text-base">{format(day.date, 'E', { locale: ja })}</div>
+                                            <div className="text-xs xl:text-xl print:text-xl"><span className="hidden xl:inline print:inline">{format(day.date, 'M')}/</span>{format(day.date, 'd')}</div>
                                         </th>
                                     ))}
                                 </tr>
@@ -338,9 +359,9 @@ export default function ScheduleTasksPMPage() {
                                     <tr key={emp.id} className="border-b border-slate-100 hover:bg-slate-50/50 group">
                                         <td className="p-1 xl:p-3 border-r border-slate-200 sticky left-0 z-10 bg-white group-hover:bg-slate-50 shadow-[1px_0_2px_-1px_rgba(0,0,0,0.1)]">
                                             <div className="font-bold text-slate-800 flex items-center justify-between gap-0.5">
-                                                <span className="hidden xl:inline">{emp.name}</span>
-                                                <span className="xl:hidden text-[11px] truncate">{emp.shortName || (emp.name.length > 4 ? emp.name.slice(0, 4) : emp.name)}</span>
-                                                <span className="hidden xl:flex">
+                                                <span className="hidden xl:inline print:inline">{emp.name}</span>
+                                                <span className="xl:hidden print:hidden text-[11px] truncate">{emp.shortName || (emp.name.length > 4 ? emp.name.slice(0, 4) : emp.name)}</span>
+                                                <span className="hidden xl:flex print:hidden">
                                                     {emp.jobType === 'Pharmacist' ? (
                                                         <span title="薬剤師"><Pill className="h-4 w-4 text-blue-400 shrink-0" /></span>
                                                     ) : (

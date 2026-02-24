@@ -32,13 +32,13 @@ export async function getAMTaskOptions(): Promise<{ success: boolean; data?: Tas
 
         if (options.length === 0) {
             const defaults: TaskOption[] = [
-                { id: 't1', name: '院外監査', bgColor: 'bg-slate-100', textColor: 'text-slate-800', order: 1, isFallback: false, excludeFromAuto: false },
-                { id: 't2', name: '注射監査', bgColor: 'bg-yellow-50', textColor: 'text-slate-800', order: 2, isFallback: false, excludeFromAuto: false },
-                { id: 't3', name: 'ミキシング・散剤', bgColor: 'bg-orange-400', textColor: 'text-white', order: 3, isFallback: false, excludeFromAuto: false },
-                { id: 't4', name: '処方薬調剤', bgColor: 'bg-yellow-300', textColor: 'text-slate-800', order: 4, isFallback: false, excludeFromAuto: false },
-                { id: 't5', name: '外来', bgColor: 'bg-white', textColor: 'text-red-500', order: 5, isFallback: false, excludeFromAuto: false },
-                { id: 't6', name: '病棟', bgColor: 'bg-blue-500', textColor: 'text-white', order: 6, isFallback: false, excludeFromAuto: false },
-                { id: 't7', name: '散剤混注', bgColor: 'bg-amber-500', textColor: 'text-white', order: 7, isFallback: false, excludeFromAuto: false }
+                { id: 't1', name: '院外監査', bgColor: 'bg-slate-100 border-slate-300', textColor: 'text-slate-800', order: 1, isFallback: false, excludeFromAuto: false },
+                { id: 't2', name: '注射監査', bgColor: 'bg-yellow-50 border-yellow-200', textColor: 'text-slate-800', order: 2, isFallback: false, excludeFromAuto: false },
+                { id: 't3', name: 'ミキシング・散剤', bgColor: 'bg-orange-400 border-orange-500', textColor: 'text-white', order: 3, isFallback: false, excludeFromAuto: false },
+                { id: 't4', name: '処方薬調剤', bgColor: 'bg-yellow-300 border-yellow-400', textColor: 'text-slate-800', order: 4, isFallback: false, excludeFromAuto: false },
+                { id: 't5', name: '外来', bgColor: 'bg-white border-slate-300', textColor: 'text-red-600 font-bold', order: 5, isFallback: false, excludeFromAuto: false },
+                { id: 't6', name: '病棟', bgColor: 'bg-blue-500 border-blue-600', textColor: 'text-white', order: 6, isFallback: false, excludeFromAuto: false },
+                { id: 't7', name: '散剤混注', bgColor: 'bg-amber-500 border-amber-600', textColor: 'text-white', order: 7, isFallback: false, excludeFromAuto: false }
             ];
             await saveAMTaskOptions(defaults);
             return { success: true, data: defaults };
@@ -54,7 +54,56 @@ export async function getAMTaskOptions(): Promise<{ success: boolean; data?: Tas
             isFallback: opt.isFallback ?? false,
             excludeFromAuto: opt.excludeFromAuto ?? false
         }));
-        return { success: true, data: mapped };
+
+        // DBから読み込んだbgColor/textColorをパレットの完全な値に正規化
+        const BG_PALETTE_VALUES = [
+            'bg-slate-100 border-slate-300',
+            'bg-blue-500 border-blue-600',
+            'bg-blue-100 border-blue-300',
+            'bg-red-500 border-red-600',
+            'bg-yellow-300 border-yellow-400',
+            'bg-yellow-50 border-yellow-200',
+            'bg-orange-400 border-orange-500',
+            'bg-amber-500 border-amber-600',
+            'bg-pink-100 border-pink-300',
+            'bg-white border-slate-300',
+        ];
+        const TEXT_PALETTE_VALUES = [
+            'text-slate-800',
+            'text-black font-bold',
+            'text-white',
+            'text-red-600 font-bold',
+            'text-amber-900 font-bold',
+        ];
+
+        let needsUpdate = false;
+        const normalized = mapped.map((opt: typeof mapped[number]) => {
+            let { bgColor, textColor } = opt;
+            // bgColorがパレットに完全一致しない場合、部分一致で補正
+            if (!BG_PALETTE_VALUES.includes(bgColor)) {
+                const match = BG_PALETTE_VALUES.find(v => v.startsWith(bgColor.split(' ')[0]));
+                if (match) {
+                    bgColor = match;
+                    needsUpdate = true;
+                }
+            }
+            // textColorがパレットに完全一致しない場合、部分一致で補正
+            if (!TEXT_PALETTE_VALUES.includes(textColor)) {
+                const match = TEXT_PALETTE_VALUES.find(v => v.startsWith(textColor.split(' ')[0]));
+                if (match) {
+                    textColor = match;
+                    needsUpdate = true;
+                }
+            }
+            return { ...opt, bgColor, textColor };
+        });
+
+        // 補正があれば自動保存
+        if (needsUpdate) {
+            await saveAMTaskOptions(normalized);
+        }
+
+        return { success: true, data: normalized };
     } catch (error) {
         console.error('Failed to get AM task options:', error);
         return { success: false, error: 'Failed to retrieve task options' };

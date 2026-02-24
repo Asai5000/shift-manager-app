@@ -243,8 +243,13 @@ export default function ScheduleTasksAMPage() {
         const option = taskOptions.find(o => o.name === taskName);
         if (option) return `${option.bgColor} ${option.textColor}`;
 
-        // Free text fallback color
+        // フリーテキストのフォールバック色
         return 'bg-white text-slate-800 border-slate-300';
+    };
+
+    // オーバーレイ用: colorClassからテキスト色のみ抽出（bg-/border-を除外）
+    const getTextColorOnly = (colorClass: string) => {
+        return colorClass.split(' ').filter(c => c.startsWith('text-') || c.startsWith('font-')).join(' ') || 'text-slate-800';
     };
 
     // Task Management Actions
@@ -452,7 +457,7 @@ export default function ScheduleTasksAMPage() {
             <style media="print">{`
                 @page {
                     size: A4 portrait;
-                    margin: 0 !important; /* Move margin to CSS padding */
+                    margin: 0 !important;
                 }
                 html, body {
                     width: 210mm !important;
@@ -462,18 +467,14 @@ export default function ScheduleTasksAMPage() {
                     padding: 0 !important;
                     overflow: hidden !important;
                 }
-                
-                /* Override globals.css which hides the body */
                 body {
                     visibility: hidden !important;
                 }
-                
-                /* Hide things that shouldn't print */
                 .no-print {
                     display: none !important;
                 }
                 
-                /* Zero out all parent containers to prevent phantom pages */
+                /* 親コンテナをリセット */
                 #__next, main, .flex-col, .h-\\[calc\\(100vh-8rem\\)\\] {
                     position: static !important;
                     min-height: 0 !important;
@@ -484,7 +485,7 @@ export default function ScheduleTasksAMPage() {
                     overflow: visible !important;
                 }
                 
-                /* Explode the print view out of the zeroed parents */
+                /* 印刷ビューを展開 */
                 #am-task-print-view {
                     visibility: visible !important;
                     position: absolute !important;
@@ -494,66 +495,63 @@ export default function ScheduleTasksAMPage() {
                     height: 297mm !important;
                     background: white !important;
                     margin: 0 !important;
-                    padding: 35mm 5mm 5mm 5mm !important; /* Moved down ~3 rows worth of space (35mm) */
+                    padding: 35mm 5mm 5mm 5mm !important;
                     box-sizing: border-box !important;
                     display: block !important;
                     z-index: 9999 !important;
                 }
-                
-                /* Force children to be visible */
                 #am-task-print-view * {
                     visibility: visible !important;
                 }
                 
+                /* テーブル基本設定 */
                 #am-task-print-view table {
                     width: 100% !important;
                     max-width: 100% !important;
                     table-layout: fixed !important;
-                    font-size: 11px !important;
+                    font-size: 13px !important;
                     margin: 0 auto !important;
-                    /* Core fix: scale down slightly more so it fits perfectly even after moving down */
                     transform: scale(0.93);
                     transform-origin: top center;
                 }
                 
+                /* セルの均一高さ (休もタスクも同じ) */
                 #am-task-print-view th, #am-task-print-view td {
                     padding: 3px 2px !important;
-                    height: auto !important;
+                }
+                #am-task-print-view td > div,
+                #am-task-print-view td > select {
+                    min-height: 40px !important;
+                    height: 40px !important;
+                    font-size: 13px !important;
                 }
                 
-                /* Prevent rows from splitting across pages */
+                /* 日付ヘッダーのフォント拡大 */
+                #am-task-print-view thead th {
+                    font-size: 14px !important;
+                    padding: 4px 2px !important;
+                }
+                #am-task-print-view thead th div {
+                    font-size: 14px !important;
+                }
+                
+                /* 改行防止 */
                 #am-task-print-view tr {
                     page-break-inside: avoid !important;
                 }
                 
-                #am-task-print-view table {
-                    width: 100% !important;
-                    max-width: 100% !important;
-                    table-layout: fixed !important;
-                    font-size: 11px !important;
-                    margin: 0 auto !important;
-                    transform: scale(0.95);
-                    transform-origin: top center;
-                }
-                
-                #am-task-print-view th, #am-task-print-view td {
-                    padding: 3px 2px !important;
-                    height: auto !important;
-                }
-                
-                /* Increase font size for employee names (first column) */
+                /* 従業員名（第1列） */
                 #am-task-print-view tbody td:first-child,
                 #am-task-print-view tbody td:first-child *,
                 #am-task-print-view thead th:first-child {
                     font-size: 16px !important;
                     font-weight: 900 !important;
                 }
-                
                 #am-task-print-view thead th:first-child {
-                    width: 32mm !important; /* Slightly reduce width per user feedback */
+                    width: 32mm !important;
                 }
                 
-                /* Extremely aggressive rule to prevent ANY page breaks */
+                /* ページ分割の完全防止 */
                 * {
                     page-break-inside: avoid !important;
                     page-break-before: avoid !important;
@@ -561,10 +559,6 @@ export default function ScheduleTasksAMPage() {
                     break-inside: avoid !important;
                     break-before: avoid !important;
                     break-after: avoid !important;
-                }
-                
-                .no-print {
-                    display: none !important;
                 }
             `}</style>
             <div className="mb-2 xl:mb-4 no-print">
@@ -669,13 +663,13 @@ export default function ScheduleTasksAMPage() {
                             <thead className="sticky top-0 z-20 bg-slate-50 shadow-sm border-b border-slate-200">
                                 <tr>
                                     <th className="p-1 xl:p-3 text-left font-bold text-slate-700 border-r border-slate-200 min-w-[50px] xl:min-w-[120px] sticky left-0 z-30 bg-slate-50">
-                                        <span className="hidden xl:inline">従業員名</span>
-                                        <span className="xl:hidden">名前</span>
+                                        <span className="hidden xl:inline print:inline">従業員名</span>
+                                        <span className="xl:hidden print:hidden">名前</span>
                                     </th>
                                     {displayDays.map(day => (
                                         <th key={day.dateStr} className="p-0.5 xl:p-2 text-center border-r border-slate-200 min-w-[40px] xl:min-w-[120px]">
-                                            <div className="font-bold text-slate-800 text-[10px] xl:text-sm">{format(day.date, 'E', { locale: ja })}</div>
-                                            <div className="text-xs xl:text-lg">{format(day.date, 'd')}<span className="hidden xl:inline">/{format(day.date, 'M')}</span></div>
+                                            <div className="font-bold text-slate-800 text-[10px] xl:text-base">{format(day.date, 'E', { locale: ja })}</div>
+                                            <div className="text-xs xl:text-xl print:text-xl"><span className="hidden xl:inline print:inline">{format(day.date, 'M')}/</span>{format(day.date, 'd')}</div>
                                         </th>
                                     ))}
                                 </tr>
@@ -687,9 +681,9 @@ export default function ScheduleTasksAMPage() {
                                     <tr key={emp.id} className="border-b border-slate-100 hover:bg-slate-50/50 group">
                                         <td className="p-1 xl:p-3 border-r border-slate-200 sticky left-0 z-10 bg-white group-hover:bg-slate-50 shadow-[1px_0_2px_-1px_rgba(0,0,0,0.1)]">
                                             <div className="font-bold text-slate-800 flex items-center justify-between gap-0.5">
-                                                <span className="hidden xl:inline">{emp.name}</span>
-                                                <span className="xl:hidden text-[11px] truncate">{getShortEmpName(emp)}</span>
-                                                <span className="hidden xl:flex">
+                                                <span className="hidden xl:inline print:inline">{emp.name}</span>
+                                                <span className="xl:hidden print:hidden text-[11px] truncate">{getShortEmpName(emp)}</span>
+                                                <span className="hidden xl:flex print:hidden">
                                                     {emp.jobType === 'Pharmacist' ? (
                                                         <span title="薬剤師"><Pill className="h-4 w-4 text-blue-400 shrink-0" /></span>
                                                     ) : (
@@ -750,11 +744,11 @@ export default function ScheduleTasksAMPage() {
                                                     }}
                                                 >
                                                     {isExchangeMode ? (
-                                                        <div className={`w-full h-full min-h-[32px] xl:min-h-[50px] flex items-center justify-center font-bold text-[10px] xl:text-[13px] rounded border transition-colors ${isAbsent ? 'bg-slate-200 text-slate-500 border-slate-300 cursor-not-allowed opacity-60' : colorClass} ${exchangeHighlight}`}>
+                                                        <div className={`w-full h-[32px] xl:h-[50px] flex items-center justify-center font-bold text-[10px] xl:text-[13px] rounded border transition-colors ${isAbsent ? 'bg-slate-200 text-slate-500 border-slate-300 cursor-not-allowed opacity-60' : colorClass} ${exchangeHighlight}`}>
                                                             {isAbsent ? absentReason : (<><span className="xl:hidden">{getShortTaskName(task) || <span className="print:hidden">-</span>}</span><span className="hidden xl:inline">{task || <span className="print:hidden">未設定</span>}</span></>)}
                                                         </div>
                                                     ) : isAbsent ? (
-                                                        <div className="w-full h-full min-h-[32px] xl:min-h-[50px] flex items-center justify-center font-bold text-[10px] xl:text-[13px] rounded border appearance-none transition-colors bg-slate-200 text-slate-500 border-slate-300">
+                                                        <div className="w-full h-[32px] xl:h-[50px] flex items-center justify-center font-bold text-[10px] xl:text-[13px] rounded border appearance-none transition-colors bg-slate-200 text-slate-500 border-slate-300">
                                                             {absentReason}
                                                         </div>
                                                     ) : isFreeInputMode ? (
@@ -763,7 +757,7 @@ export default function ScheduleTasksAMPage() {
                                                             size={1}
                                                             placeholder="入力"
                                                             autoFocus={freeInputCells[key] && task === ''}
-                                                            className={`w-full min-w-0 h-full min-h-[32px] xl:min-h-[50px] px-0.5 xl:px-1 text-center font-bold text-[10px] xl:text-[13px] rounded border focus:ring-2 focus:ring-blue-400 focus:outline-none transition-colors ${colorClass}`}
+                                                            className={`w-full min-w-0 h-[32px] xl:h-[50px] px-0.5 xl:px-1 text-center font-bold text-[10px] xl:text-[13px] rounded border focus:ring-2 focus:ring-blue-400 focus:outline-none transition-colors ${colorClass}`}
                                                             value={task}
                                                             onChange={(e) => handleCellChange(emp.id, day.dateStr, e.target.value)}
                                                             onBlur={(e) => {
@@ -774,13 +768,33 @@ export default function ScheduleTasksAMPage() {
                                                             }}
                                                         />
                                                     ) : (
-                                                        <div className="relative w-full h-full">
+                                                        <div className="relative w-full h-[32px] xl:h-[50px]">
                                                             {/* モバイル用2文字省略オーバーレイ */}
-                                                            <span className={`xl:hidden absolute inset-0 flex items-center justify-center font-bold text-[10px] pointer-events-none z-10 ${colorClass}`}>
+                                                            <span className={`xl:hidden print:hidden absolute inset-0 flex items-center justify-center font-bold text-[10px] pointer-events-none z-10 ${getTextColorOnly(colorClass)}`}>
                                                                 {getShortTaskName(task) || '-'}
                                                             </span>
+                                                            {/* モバイル用select（テキスト非表示） */}
                                                             <select
-                                                                className={`w-full min-w-0 h-full min-h-[32px] xl:min-h-[50px] px-0 xl:px-1 text-center font-bold text-transparent xl:text-inherit text-[10px] xl:text-[13px] rounded border appearance-none cursor-pointer focus:ring-2 focus:ring-blue-400 focus:outline-none transition-colors ${colorClass} ${task === '' ? 'print:text-transparent' : ''}`}
+                                                                className={`xl:hidden print:hidden w-full min-w-0 h-full px-0 text-center font-bold text-transparent text-[10px] rounded border appearance-none cursor-pointer focus:ring-2 focus:ring-blue-400 focus:outline-none transition-colors ${colorClass} ${task === '' ? 'print:text-transparent' : ''}`}
+                                                                value={task}
+                                                                onChange={(e) => {
+                                                                    if (e.target.value === '__free__') {
+                                                                        setFreeInputCells(prev => ({ ...prev, [key]: true }));
+                                                                        handleCellChange(emp.id, day.dateStr, '');
+                                                                    } else {
+                                                                        handleCellChange(emp.id, day.dateStr, e.target.value);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <option value="" className="bg-white text-slate-800 font-normal">未設定</option>
+                                                                {sortedOptions.map(opt => (
+                                                                    <option key={opt.id} value={opt.name} className="bg-white text-slate-800 font-normal">{opt.name}</option>
+                                                                ))}
+                                                                <option value="__free__" className="bg-slate-100 text-slate-600 font-normal">📝 フリー入力...</option>
+                                                            </select>
+                                                            {/* デスクトップ用select（colorClassのテキスト色をそのまま適用） */}
+                                                            <select
+                                                                className={`hidden xl:block print:block w-full min-w-0 h-full px-1 text-center font-bold text-[13px] rounded border appearance-none cursor-pointer focus:ring-2 focus:ring-blue-400 focus:outline-none transition-colors ${colorClass} ${task === '' ? 'print:text-transparent' : ''}`}
                                                                 value={task}
                                                                 onChange={(e) => {
                                                                     if (e.target.value === '__free__') {
