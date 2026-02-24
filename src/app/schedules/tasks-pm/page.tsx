@@ -10,11 +10,12 @@ import { getMonthlySchedules } from '@/actions/schedules';
 import { getCalendarDays } from '@/lib/date-utils';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { ArrowRightLeft, Users, Pill, ClipboardList, FilePenLine, Printer } from 'lucide-react';
+import { ArrowRightLeft, Users, Pill, ClipboardList, FilePenLine, Printer, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Employee {
     id: number;
     name: string;
+    shortName?: string | null;
     jobType: string;
     displayOrder: number;
     wardDay?: string | null;
@@ -247,71 +248,67 @@ export default function ScheduleTasksPMPage() {
                 }
             `}</style>
 
-            <div className="mb-4 no-print flex-shrink-0">
-                <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                    <FilePenLine className="h-6 w-6 text-blue-600" />
+            <div className="mb-2 xl:mb-4 no-print flex-shrink-0">
+                <h1 className="text-lg xl:text-2xl font-bold text-slate-800 flex items-center gap-2">
+                    <FilePenLine className="h-5 w-5 xl:h-6 xl:w-6 text-blue-600" />
                     スケジュール管理(午後)
                 </h1>
-                <p className="text-slate-500 mt-1">午後中の業務タスクを従業員ごとに割り振ります。</p>
+                <p className="text-slate-500 mt-0.5 text-xs xl:text-sm hidden sm:block">午後中の業務タスクを従業員ごとに割り振ります。</p>
             </div>
 
             {/* Top Toolbar */}
-            <div className="flex flex-col gap-3 mb-4 p-3 bg-white border border-slate-200 rounded-lg shadow-sm flex-shrink-0 flex-none max-h-min">
-                {/* Upper Row: Navigation and Settings/Stats */}
-                <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center gap-4 mr-4">
-                        {/* Month Navigator */}
-                        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-md">
-                            <Button variant="ghost" size="sm" onClick={() => {
-                                if (month === 1) { setYear(y => y - 1); setMonth(12); }
-                                else { setMonth(m => m - 1); }
-                                setWeekOffset(0);
-                            }} className="px-2 h-7"><ArrowRightLeft className="h-4 w-4 rotate-180" /></Button>
-                            <span className="font-bold text-slate-700 min-w-[5rem] text-center">{year}年 {month}月</span>
-                            <Button variant="ghost" size="sm" onClick={() => {
-                                if (month === 12) { setYear(y => y + 1); setMonth(1); }
-                                else { setMonth(m => m + 1); }
-                                setWeekOffset(0);
-                            }} className="px-2 h-7"><ArrowRightLeft className="h-4 w-4" /></Button>
-                        </div>
+            <div className="flex flex-col gap-2 xl:gap-3 mb-2 xl:mb-4 p-2 xl:p-3 bg-white border border-slate-200 rounded-lg shadow-sm flex-shrink-0 flex-none max-h-min no-print">
+                <div className="flex items-center gap-1.5 xl:gap-2">
+                    {/* Month Navigator */}
+                    <Button variant="ghost" size="sm" onClick={() => {
+                        if (month === 1) { setYear(y => y - 1); setMonth(12); }
+                        else { setMonth(m => m - 1); }
+                        setWeekOffset(0);
+                    }} className="px-1 xl:px-2 h-7 shrink-0"><ChevronLeft className="h-3.5 w-3.5 xl:h-4 xl:w-4" /></Button>
+                    <span className="font-bold text-slate-700 text-center text-[12px] xl:text-base whitespace-nowrap">
+                        <span className="hidden xl:inline">{year}年</span> {month}月
+                    </span>
+                    <Button variant="ghost" size="sm" onClick={() => {
+                        if (month === 12) { setYear(y => y + 1); setMonth(1); }
+                        else { setMonth(m => m + 1); }
+                        setWeekOffset(0);
+                    }} className="px-1 xl:px-2 h-7 shrink-0"><ChevronRight className="h-3.5 w-3.5 xl:h-4 xl:w-4" /></Button>
 
-                        {/* Week Navigator */}
-                        <div className="flex items-center gap-2 bg-blue-50 p-1 rounded-md text-blue-700">
-                            <Button variant="ghost" size="sm" onClick={() => {
-                                if (weekOffset > 0) {
-                                    setWeekOffset(prev => prev - 1);
-                                } else {
-                                    if (month === 1) { setYear(prev => prev - 1); setMonth(12); }
-                                    else { setMonth(prev => prev - 1); }
-                                    setTimeout(() => setWeekOffset(5), 0);
-                                }
-                            }} disabled={weekOffset === 0 && month === 1 && year === 2020} className="px-2 h-7 text-blue-700 hover:text-blue-800 hover:bg-blue-100"><ArrowRightLeft className="h-4 w-4 rotate-180" /></Button>
-                            <span className="font-bold text-sm min-w-[5rem] text-center">第{weekOffset + 1}週</span>
-                            <Button variant="ghost" size="sm" onClick={() => {
-                                if (weekOffset < maxWeekOffset) {
-                                    setWeekOffset(prev => prev + 1);
-                                } else {
-                                    if (month === 12) { setYear(prev => prev + 1); setMonth(1); }
-                                    else { setMonth(prev => prev + 1); }
-                                    setWeekOffset(0);
-                                }
-                            }} disabled={weekOffset === maxWeekOffset && month === 12 && year === 2099} className="px-2 h-7 text-blue-700 hover:text-blue-800 hover:bg-blue-100"><ArrowRightLeft className="h-4 w-4" /></Button>
-                        </div>
-                    </div>
+                    <div className="h-5 w-px bg-slate-300 mx-0.5 xl:mx-2 shrink-0"></div>
+
+                    {/* Week Navigator */}
+                    <Button variant="ghost" size="sm" onClick={() => {
+                        if (weekOffset > 0) {
+                            setWeekOffset(prev => prev - 1);
+                        } else {
+                            if (month === 1) { setYear(prev => prev - 1); setMonth(12); }
+                            else { setMonth(prev => prev - 1); }
+                            setTimeout(() => setWeekOffset(5), 0);
+                        }
+                    }} disabled={weekOffset === 0 && month === 1 && year === 2020} className="px-1 xl:px-2 h-7 text-blue-700 shrink-0"><ChevronLeft className="h-3.5 w-3.5 xl:h-4 xl:w-4" /></Button>
+                    <span className="font-bold text-blue-700 text-center text-[12px] xl:text-sm whitespace-nowrap">
+                        <span className="xl:hidden">{weekOffset + 1}週</span>
+                        <span className="hidden xl:inline">第{weekOffset + 1}週</span>
+                    </span>
+                    <Button variant="ghost" size="sm" onClick={() => {
+                        if (weekOffset < maxWeekOffset) {
+                            setWeekOffset(prev => prev + 1);
+                        } else {
+                            if (month === 12) { setYear(prev => prev + 1); setMonth(1); }
+                            else { setMonth(prev => prev + 1); }
+                            setWeekOffset(0);
+                        }
+                    }} disabled={weekOffset === maxWeekOffset && month === 12 && year === 2099} className="px-1 xl:px-2 h-7 text-blue-700 shrink-0"><ChevronRight className="h-3.5 w-3.5 xl:h-4 xl:w-4" /></Button>
 
                     <div className="flex-1"></div>
 
-                    <div className="flex items-center gap-2 mr-4 text-sm font-bold text-slate-700">
-                        <span className="flex items-center gap-1 hidden md:flex"><Users className="h-4 w-4 text-blue-500" /> ({employees.length}名)</span>
+                    {/* Utility Buttons */}
+                    <div className="flex items-center gap-1 xl:gap-2 shrink-0">
+                        <span className="hidden md:flex items-center gap-1 text-xs font-bold text-slate-500"><Users className="h-3.5 w-3.5 text-blue-500" />{employees.length}名</span>
+                        <Button variant="outline" size="sm" className="h-7 xl:h-9 px-1.5 xl:px-3 text-xs" onClick={handlePrint}>
+                            <Printer className="h-3.5 w-3.5 xl:h-4 xl:w-4" /><span className="hidden xl:inline ml-1">印刷</span>
+                        </Button>
                     </div>
-
-                    <Button
-                        variant="outline"
-                        className="h-9 font-bold text-slate-600 border-slate-300"
-                        onClick={handlePrint}
-                    >
-                        <Printer className="h-4 w-4 mr-2 text-slate-500" /> 印刷
-                    </Button>
                 </div>
             </div>
 
@@ -321,16 +318,17 @@ export default function ScheduleTasksPMPage() {
                         {year}年 {month}月 第{weekOffset + 1}週 スケジュール(午後)
                     </div>
                     <div className="flex-1 overflow-auto custom-scrollbar print:overflow-visible print:block print:h-auto">
-                        <table className="w-full min-w-[800px] border-collapse text-sm">
+                        <table className="w-full xl:min-w-[800px] border-collapse text-[11px] xl:text-sm">
                             <thead className="sticky top-0 z-20 bg-slate-50 shadow-sm border-b border-slate-200">
                                 <tr>
-                                    <th className="p-3 text-left font-bold text-slate-700 border-r border-slate-200 min-w-[120px] sticky left-0 z-30 bg-slate-50">
-                                        従業員名
+                                    <th className="p-1 xl:p-3 text-left font-bold text-slate-700 border-r border-slate-200 min-w-[50px] xl:min-w-[120px] sticky left-0 z-30 bg-slate-50">
+                                        <span className="hidden xl:inline">従業員名</span>
+                                        <span className="xl:hidden">名前</span>
                                     </th>
                                     {displayDays.map(day => (
-                                        <th key={day.dateStr} className="p-2 text-center border-r border-slate-200 min-w-[120px]">
-                                            <div className="font-bold text-slate-800">{format(day.date, 'E', { locale: ja })}</div>
-                                            <div className="text-lg">{format(day.date, 'M/d')}</div>
+                                        <th key={day.dateStr} className="p-0.5 xl:p-2 text-center border-r border-slate-200 min-w-[40px] xl:min-w-[120px]">
+                                            <div className="font-bold text-slate-800 text-[10px] xl:text-sm">{format(day.date, 'E', { locale: ja })}</div>
+                                            <div className="text-xs xl:text-lg">{format(day.date, 'd')}<span className="hidden xl:inline">/{format(day.date, 'M')}</span></div>
                                         </th>
                                     ))}
                                 </tr>
@@ -338,14 +336,17 @@ export default function ScheduleTasksPMPage() {
                             <tbody>
                                 {employees.map(emp => (
                                     <tr key={emp.id} className="border-b border-slate-100 hover:bg-slate-50/50 group">
-                                        <td className="p-3 border-r border-slate-200 sticky left-0 z-10 bg-white group-hover:bg-slate-50 shadow-[1px_0_2px_-1px_rgba(0,0,0,0.1)]">
-                                            <div className="font-bold text-slate-800 flex items-center justify-between">
-                                                <span>{emp.name}</span>
-                                                {emp.jobType === 'Pharmacist' ? (
-                                                    <span title="薬剤師"><Pill className="h-4 w-4 text-blue-400" /></span>
-                                                ) : (
-                                                    <span title="助手/事務"><ClipboardList className="h-4 w-4 text-emerald-500" /></span>
-                                                )}
+                                        <td className="p-1 xl:p-3 border-r border-slate-200 sticky left-0 z-10 bg-white group-hover:bg-slate-50 shadow-[1px_0_2px_-1px_rgba(0,0,0,0.1)]">
+                                            <div className="font-bold text-slate-800 flex items-center justify-between gap-0.5">
+                                                <span className="hidden xl:inline">{emp.name}</span>
+                                                <span className="xl:hidden text-[11px] truncate">{emp.shortName || (emp.name.length > 4 ? emp.name.slice(0, 4) : emp.name)}</span>
+                                                <span className="hidden xl:flex">
+                                                    {emp.jobType === 'Pharmacist' ? (
+                                                        <span title="薬剤師"><Pill className="h-4 w-4 text-blue-400 shrink-0" /></span>
+                                                    ) : (
+                                                        <span title="助手/事務"><ClipboardList className="h-4 w-4 text-emerald-500 shrink-0" /></span>
+                                                    )}
+                                                </span>
                                             </div>
                                         </td>
                                         {displayDays.map(day => {
@@ -383,24 +384,24 @@ export default function ScheduleTasksPMPage() {
                                             return (
                                                 <td
                                                     key={day.dateStr}
-                                                    className={`p-1 border-r border-slate-100 relative transition-colors ${cursorClass}`}
+                                                    className={`p-0.5 xl:p-1 border-r border-slate-100 relative transition-colors ${cursorClass}`}
                                                     onClick={() => {
                                                         if (!isAbsent && !isWardDay) handleCellClick(emp.id, day.dateStr);
                                                     }}
                                                 >
                                                     {schedule && !isAbsent && (
-                                                        <div className="absolute top-2 right-2 text-[10px] print:text-[12px] text-slate-500 font-bold max-w-full overflow-hidden whitespace-nowrap z-10 pointer-events-none">
+                                                        <div className="absolute top-1 xl:top-2 right-1 xl:right-2 text-[8px] xl:text-[10px] print:text-[12px] text-slate-500 font-bold max-w-full overflow-hidden whitespace-nowrap z-10 pointer-events-none">
                                                             {schedule.shortText || schedule.text}
                                                         </div>
                                                     )}
                                                     {isAbsent ? (
-                                                        <div className="w-full h-full min-h-[50px] flex items-center justify-center font-bold text-[13px] rounded border appearance-none transition-colors bg-slate-200 text-slate-500 border-slate-300">
+                                                        <div className="w-full h-full min-h-[32px] xl:min-h-[50px] flex items-center justify-center font-bold text-[10px] xl:text-[13px] rounded border appearance-none transition-colors bg-slate-200 text-slate-500 border-slate-300">
                                                             {absentReason}
                                                         </div>
                                                     ) : (
-                                                        <div className={`w-full h-full min-h-[50px] flex items-center justify-center font-bold text-[13px] rounded border transition-colors ${isAssigned ? 'bg-blue-50 border-blue-200' : 'border-transparent'}`}>
+                                                        <div className={`w-full h-full min-h-[32px] xl:min-h-[50px] flex items-center justify-center font-bold text-[10px] xl:text-[13px] rounded border transition-colors ${isAssigned ? 'bg-blue-50 border-blue-200' : 'border-transparent'}`}>
                                                             {isAssigned && (
-                                                                <div className="w-6 h-6 rounded-full bg-slate-800 shadow-sm animate-in zoom-in-50 duration-200"></div>
+                                                                <div className="w-4 h-4 xl:w-6 xl:h-6 rounded-full bg-slate-800 shadow-sm animate-in zoom-in-50 duration-200"></div>
                                                             )}
                                                         </div>
                                                     )}

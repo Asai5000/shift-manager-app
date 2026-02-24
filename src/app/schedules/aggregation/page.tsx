@@ -14,6 +14,7 @@ import { ja } from 'date-fns/locale';
 interface Employee {
     id: number;
     name: string;
+    shortName?: string | null;
     displayOrder: number;
 }
 
@@ -171,26 +172,26 @@ export default function AggregationPage() {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
+        <div className="space-y-3 xl:space-y-6">
+            <div className="flex items-center justify-between gap-2">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 flex items-center">
-                        <Calculator className="mr-2 h-6 w-6 text-blue-600" />
+                    <h1 className="text-lg xl:text-2xl font-bold text-slate-900 flex items-center">
+                        <Calculator className="mr-1.5 xl:mr-2 h-5 w-5 xl:h-6 xl:w-6 text-blue-600" />
                         シフト集計表
                     </h1>
-                    <p className="text-slate-500 mt-1">
+                    <p className="text-slate-500 mt-0.5 text-xs xl:text-sm hidden sm:block">
                         月ごとのシフト状況と休日数を確認できます。
                     </p>
                 </div>
-                <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="icon" onClick={handlePrev}>
-                        <ChevronLeft className="h-4 w-4" />
+                <div className="flex items-center space-x-1.5 xl:space-x-2 shrink-0">
+                    <Button variant="outline" size="sm" className="px-1.5 xl:px-2 h-7 xl:h-10" onClick={handlePrev}>
+                        <ChevronLeft className="h-3.5 w-3.5 xl:h-4 xl:w-4" />
                     </Button>
-                    <span className="font-bold text-lg min-w-[100px] text-center">
-                        {year}年 {month}月
+                    <span className="font-bold text-[12px] xl:text-lg min-w-[40px] xl:min-w-[100px] text-center whitespace-nowrap">
+                        <span className="hidden xl:inline">{year}年 </span>{month}月
                     </span>
-                    <Button variant="outline" size="icon" onClick={handleNext}>
-                        <ChevronRight className="h-4 w-4" />
+                    <Button variant="outline" size="sm" className="px-1.5 xl:px-2 h-7 xl:h-10" onClick={handleNext}>
+                        <ChevronRight className="h-3.5 w-3.5 xl:h-4 xl:w-4" />
                     </Button>
                 </div>
             </div>
@@ -201,23 +202,24 @@ export default function AggregationPage() {
                         <Table className="min-w-max border-separate border-spacing-0">
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[180px] min-w-[180px] sticky left-0 z-30 bg-white shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
-                                        従業員名
+                                    <TableHead className="w-[60px] min-w-[60px] xl:w-[180px] xl:min-w-[180px] sticky left-0 z-30 bg-white shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap text-[11px] xl:text-sm p-1 xl:p-2">
+                                        <span className="hidden xl:inline">従業員名</span>
+                                        <span className="xl:hidden">名前</span>
                                     </TableHead>
                                     {days.map(day => (
                                         <TableHead
                                             key={day.dateStr}
-                                            className={`text-center min-w-[32px] w-[32px] p-0 font-bold text-xs border-l border-slate-100 ${getDayColor(day)}`}
+                                            className={`text-center min-w-[22px] w-[22px] xl:min-w-[32px] xl:w-[32px] p-0 font-bold text-[9px] xl:text-xs border-l border-slate-100 ${getDayColor(day)}`}
                                         >
-                                            <div className="flex flex-col items-center justify-center h-full py-1">
+                                            <div className="flex flex-col items-center justify-center h-full py-0.5 xl:py-1">
                                                 <span>{format(day.date, 'd')}</span>
-                                                <span className="text-[10px] font-normal">
+                                                <span className="hidden xl:inline text-[10px] font-normal">
                                                     ({format(day.date, 'E', { locale: ja })})
                                                 </span>
                                             </div>
                                         </TableHead>
                                     ))}
-                                    <TableHead className="text-center font-bold bg-slate-50 min-w-[60px] border-l border-slate-200 sticky right-0 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                                    <TableHead className="text-center font-bold bg-slate-50 min-w-[36px] xl:min-w-[60px] border-l border-slate-200 sticky right-0 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)] text-[10px] xl:text-sm p-0 xl:p-2">
                                         休み
                                     </TableHead>
                                 </TableRow>
@@ -232,8 +234,9 @@ export default function AggregationPage() {
                                 ) : (
                                     employees.map(emp => (
                                         <TableRow key={emp.id} className="hover:bg-slate-50">
-                                            <TableCell className="font-medium sticky left-0 z-20 bg-white shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap border-b border-slate-100">
-                                                {emp.name}
+                                            <TableCell className="font-medium sticky left-0 z-20 bg-white shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap border-b border-slate-100 p-1 xl:p-2">
+                                                <span className="hidden xl:inline">{emp.name}</span>
+                                                <span className="xl:hidden text-[11px]">{emp.shortName || (emp.name.length > 4 ? emp.name.slice(0, 4) : emp.name)}</span>
                                             </TableCell>
                                             {days.map(day => {
                                                 const shift = getShiftForEmployeeAndDate(emp.id, day.dateStr);
@@ -241,7 +244,7 @@ export default function AggregationPage() {
                                                 const isImplicitRest = !shift && isHolidayWorkDay;
 
                                                 return (
-                                                    <TableCell key={day.dateStr} className={`text-center p-0 border-l border-slate-100 text-xs h-[40px] border-b border-slate-100 ${getDayColor(day).includes('bg-') ? 'bg-opacity-30' : ''}`}>
+                                                    <TableCell key={day.dateStr} className={`text-center p-0 border-l border-slate-100 text-[9px] xl:text-xs h-[28px] xl:h-[40px] border-b border-slate-100 ${getDayColor(day).includes('bg-') ? 'bg-opacity-30' : ''}`}>
                                                         <div className="flex items-center justify-center h-full w-full">
                                                             {shift ? (
                                                                 <span className={
@@ -259,7 +262,7 @@ export default function AggregationPage() {
                                                     </TableCell>
                                                 );
                                             })}
-                                            <TableCell className="text-center font-bold bg-slate-50 border-l border-slate-200 sticky right-0 z-20 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)] border-b border-slate-100">
+                                            <TableCell className="text-center font-bold bg-slate-50 border-l border-slate-200 sticky right-0 z-20 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)] border-b border-slate-100 text-[11px] xl:text-sm p-0 xl:p-2">
                                                 {countRestDays(emp.id)}
                                             </TableCell>
                                         </TableRow>

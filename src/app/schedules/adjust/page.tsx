@@ -48,6 +48,7 @@ export default function ShiftAdjustmentPage() {
     const [schedules, setSchedules] = useState<Schedule[]>([]);
 
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
+    const [showMobileActions, setShowMobileActions] = useState(false);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [pendingShifts, setPendingShifts] = useState<Record<string, string>>({}); // Key: "empId-date", Value: type (empty string = delete)
     const [selectedShiftType, setSelectedShiftType] = useState<string>('休み(終日)');
@@ -404,39 +405,38 @@ export default function ShiftAdjustmentPage() {
             />
 
             {/* Header */}
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between py-4 px-4 sm:px-6 border-b border-slate-200 bg-white gap-4">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                    <h1 className="text-xl font-bold flex items-center text-slate-800 shrink-0">
-                        <Settings2 className="mr-2 h-6 w-6 text-purple-600" />
-                        シフト調整モード
+            <div className="flex items-center justify-between py-2 xl:py-4 px-3 xl:px-6 border-b border-slate-200 bg-white gap-2">
+                <div className="flex items-center gap-2 xl:gap-4">
+                    <h1 className="text-base xl:text-xl font-bold flex items-center text-slate-800 shrink-0">
+                        <Settings2 className="mr-1.5 xl:mr-2 h-4 w-4 xl:h-6 xl:w-6 text-purple-600" />
+                        <span className="hidden sm:inline">シフト</span>調整
                     </h1>
-                    <div className="flex flex-wrap items-center gap-2 bg-slate-100 rounded-lg p-1 shrink-0 w-fit">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+                    <div className="flex items-center gap-0.5 xl:gap-2 shrink-0">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
                             if (month === 1) { setYear(y => y - 1); setMonth(12); }
                             else setMonth(m => m - 1);
                         }}>
-                            <ChevronLeft className="h-4 w-4" />
+                            <ChevronLeft className="h-3.5 w-3.5 xl:h-4 xl:w-4" />
                         </Button>
-                        <span className="font-bold text-base px-2">
-                            {year}年 {month}月
+                        <span className="font-bold text-[12px] xl:text-base whitespace-nowrap">
+                            <span className="hidden xl:inline">{year}年 </span>{month}月
                         </span>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
                             if (month === 12) { setYear(y => y + 1); setMonth(1); }
                             else setMonth(m => m + 1);
                         }}>
-                            <ChevronRight className="h-4 w-4" />
+                            <ChevronRight className="h-3.5 w-3.5 xl:h-4 xl:w-4" />
                         </Button>
                     </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                {/* Desktop: show buttons inline */}
+                <div className="hidden xl:flex items-center gap-2">
                     <Button
                         variant="ghost"
                         className="text-red-500 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-100"
-                        title="シフト一括削除"
                         onClick={() => setIsBulkDeleteModalOpen(true)}
                     >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        一括削除
+                        <Trash2 className="h-4 w-4 mr-2" />一括削除
                     </Button>
                     <div className="w-px bg-slate-200 mx-1"></div>
                     <Button
@@ -444,13 +444,10 @@ export default function ShiftAdjustmentPage() {
                         className="text-purple-600 border-purple-200 hover:bg-purple-50"
                         onClick={() => setIsAutoAssignModalOpen(true)}
                     >
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        自動振り分け
+                        <Sparkles className="h-4 w-4 mr-2" />自動振り分け
                     </Button>
                     <div className="w-px bg-slate-200 mx-1"></div>
-                    <Button variant="outline" onClick={() => {
-                        setPendingShifts({});
-                    }}>キャンセル</Button>
+                    <Button variant="outline" onClick={() => setPendingShifts({})}>キャンセル</Button>
                     <Button
                         className="bg-green-600 hover:bg-green-700 text-white"
                         onClick={handleSave}
@@ -459,28 +456,60 @@ export default function ShiftAdjustmentPage() {
                         {isSaving ? '保存中...' : '保存'}
                     </Button>
                 </div>
+                {/* Mobile: save button always visible, others in toggle */}
+                <div className="xl:hidden flex items-center gap-1.5">
+                    <Button
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white font-bold h-7 text-xs px-2"
+                        onClick={handleSave}
+                        disabled={isSaving || Object.keys(pendingShifts).length === 0}
+                    >
+                        {isSaving ? '保存中' : '保存'}
+                    </Button>
+                </div>
+            </div>
+            {/* Mobile action toggle */}
+            <div className="xl:hidden border-b border-slate-200 bg-white">
+                <button
+                    className="w-full flex items-center justify-center gap-1 text-[11px] text-slate-500 hover:text-slate-700 py-1.5"
+                    onClick={() => setShowMobileActions(!showMobileActions)}
+                >
+                    <ChevronRight className={`h-3 w-3 transition-transform ${showMobileActions ? 'rotate-90' : ''}`} />
+                    操作メニュー
+                </button>
+                {showMobileActions && (
+                    <div className="flex flex-wrap items-center gap-1.5 px-3 pb-2">
+                        <Button size="sm" variant="ghost" className="text-red-500 hover:bg-red-50 h-7 text-xs px-2" onClick={() => setIsBulkDeleteModalOpen(true)}>
+                            <Trash2 className="h-3.5 w-3.5 mr-1" />一括削除
+                        </Button>
+                        <Button size="sm" variant="outline" className="text-purple-600 border-purple-200 h-7 text-xs px-2" onClick={() => setIsAutoAssignModalOpen(true)}>
+                            <Sparkles className="h-3.5 w-3.5 mr-1" />自動振分
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => setPendingShifts({})}>キャンセル</Button>
+                    </div>
+                )}
             </div>
 
-            {/* Shift Editor Bar (Moved from Footer) */}
-            <div className="border-b border-slate-200 bg-white px-4 sm:px-6 py-3 xl:py-0 xl:h-16 flex flex-col xl:flex-row xl:items-center justify-between shadow-sm z-20 gap-3">
-                <div className="flex items-center flex-wrap gap-x-4 gap-y-2">
-                    <div className="text-sm shrink-0 flex items-center">
-                        <span className="text-slate-500 mr-2 whitespace-nowrap">選択中:</span>
-                        <span className="font-bold truncate max-w-[120px]">{selectedEmployee ? selectedEmployee.name : '未選択'}</span>
+            {/* Shift Editor Bar */}
+            <div className="border-b border-slate-200 bg-white px-3 xl:px-6 py-2 xl:py-0 xl:h-16 flex flex-col xl:flex-row xl:items-center justify-between shadow-sm z-20 gap-2 xl:gap-3">
+                <div className="flex items-center flex-wrap gap-x-3 gap-y-1">
+                    <div className="text-xs xl:text-sm shrink-0 flex items-center">
+                        <span className="text-slate-500 mr-1 whitespace-nowrap">従業員:</span>
+                        <span className="font-bold truncate max-w-[80px] xl:max-w-[120px]">{selectedEmployee ? (selectedEmployee.shortName || selectedEmployee.name) : '未選択'}</span>
                     </div>
-                    <div className="hidden sm:block h-4 w-px bg-slate-300"></div>
-                    <div className="text-sm shrink-0 flex items-center">
-                        <span className="text-slate-500 mr-2 whitespace-nowrap">選択日:</span>
+                    <div className="h-3 w-px bg-slate-300 hidden sm:block"></div>
+                    <div className="text-xs xl:text-sm shrink-0 flex items-center">
+                        <span className="text-slate-500 mr-1 whitespace-nowrap">日付:</span>
                         <span className="font-bold whitespace-nowrap">
                             {selectedDate
-                                ? format(new Date(selectedDate), 'yyyy年M月d日(E)', { locale: ja })
+                                ? format(new Date(selectedDate), 'M/d(E)', { locale: ja })
                                 : '未選択'}
                         </span>
                     </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1.5 xl:gap-2">
                     <select
-                        className="h-9 rounded-md border border-slate-300 text-sm px-3 bg-white hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                        className="h-7 xl:h-9 rounded-md border border-slate-300 text-xs xl:text-sm px-1.5 xl:px-3 bg-white hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                         value={selectedShiftType}
                         onChange={(e) => setSelectedShiftType(e.target.value)}
                     >
@@ -489,19 +518,21 @@ export default function ShiftAdjustmentPage() {
                         ))}
                     </select>
                     <Button
-                        className="bg-green-600 hover:bg-green-700 text-white font-bold"
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white font-bold h-7 xl:h-9 text-xs px-2 xl:px-3"
                         onClick={handleRegisterShift}
                         disabled={!selectedEmployeeId || !selectedDate}
                     >
-                        選択日に登録
+                        登録
                     </Button>
                     <Button
+                        size="sm"
                         variant="destructive"
-                        className="font-bold"
+                        className="font-bold h-7 xl:h-9 text-xs px-2 xl:px-3"
                         onClick={handleDeleteShift}
                         disabled={!selectedEmployeeId || !selectedDate}
                     >
-                        選択日から削除
+                        削除
                     </Button>
                 </div>
             </div>
@@ -511,22 +542,24 @@ export default function ShiftAdjustmentPage() {
             <div className="flex-1 flex flex-col xl:flex-row overflow-auto xl:overflow-hidden bg-slate-50">
                 {/* Left: Employee Selection */}
                 <div className="w-full xl:w-48 border-b xl:border-b-0 xl:border-r border-slate-200 bg-white flex flex-col shrink-0">
-                    <div className="p-4 border-b border-slate-100 font-semibold text-slate-700 bg-slate-50/50 hidden xl:block">
+                    <div className="p-3 xl:p-4 border-b border-slate-100 font-semibold text-slate-700 bg-slate-50/50 hidden xl:block">
                         従業員選択
                     </div>
-                    {/* ... (rest of the file) */}
-                    <div className="flex flex-row xl:flex-col xl:flex-1 overflow-x-auto xl:overflow-y-auto xl:overflow-x-hidden p-2 space-x-2 xl:space-x-0 xl:space-y-2 custom-scrollbar">
+                    <div className="flex flex-row xl:flex-col xl:flex-1 overflow-x-auto xl:overflow-y-auto xl:overflow-x-hidden p-1.5 xl:p-2 space-x-1.5 xl:space-x-0 xl:space-y-2 custom-scrollbar">
                         {employees.map(emp => (
                             <div
                                 key={emp.id}
-                                className={`px-3 py-2 border rounded-lg cursor-pointer transition-colors flex items-center justify-between shadow-sm shrink-0 xl:shrink-auto min-w-[120px] xl:min-w-0 ${selectedEmployeeId === emp.id
+                                className={`px-2 xl:px-3 py-1.5 xl:py-2 border rounded-lg cursor-pointer transition-colors flex items-center justify-between shadow-sm shrink-0 xl:shrink-auto min-w-[70px] xl:min-w-0 ${selectedEmployeeId === emp.id
                                     ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-300'
                                     : 'border-slate-200 hover:bg-slate-50'
                                     }`}
                                 onClick={() => handleEmployeeSelect(emp.id)}
                             >
-                                <div className="font-bold text-slate-800 text-sm truncate">{emp.name}</div>
-                                <div className="text-xs text-slate-500 shrink-0 ml-1 font-medium">
+                                <div className="font-bold text-slate-800 text-[11px] xl:text-sm truncate">
+                                    <span className="hidden xl:inline">{emp.name}</span>
+                                    <span className="xl:hidden">{emp.shortName || (emp.name.length > 4 ? emp.name.slice(0, 4) : emp.name)}</span>
+                                </div>
+                                <div className="text-[10px] xl:text-xs text-slate-500 shrink-0 ml-1 font-medium">
                                     ({countRestDays(emp.id)})
                                 </div>
                             </div>
@@ -535,16 +568,16 @@ export default function ShiftAdjustmentPage() {
                 </div>
 
                 {/* Center: Calendar */}
-                <div className="flex-1 flex flex-col overflow-hidden min-h-[400px]">
+                <div className="flex-1 flex flex-col overflow-hidden min-h-[300px] xl:min-h-[400px]">
                     <div className="p-4 border-b border-slate-200 bg-white flex justify-between items-center shadow-sm z-10 hidden xl:flex">
                         <span className="font-semibold text-slate-700">月間カレンダー</span>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-                        <div className="overflow-x-auto custom-scrollbar -mx-4 px-4 xl:mx-0 xl:px-0">
-                            <div className="grid grid-cols-7 gap-px bg-slate-200 border border-slate-200 rounded-lg overflow-hidden shadow-sm min-w-[500px] xl:min-w-0">
+                    <div className="flex-1 overflow-y-auto p-2 xl:p-4 custom-scrollbar">
+                        <div className="overflow-x-auto custom-scrollbar -mx-2 px-2 xl:mx-0 xl:px-0">
+                            <div className="grid grid-cols-7 gap-px bg-slate-200 border border-slate-200 rounded-lg overflow-hidden shadow-sm min-w-0">
                                 {/* Headers */}
                                 {['日', '月', '火', '水', '木', '金', '土'].map((d, i) => (
-                                    <div key={d} className={`p-2 text-center text-xs font-bold bg-slate-50 ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-slate-600'}`}>
+                                    <div key={d} className={`p-1 xl:p-2 text-center text-[10px] xl:text-xs font-bold bg-slate-50 ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-slate-600'}`}>
                                         {d}
                                     </div>
                                 ))}
@@ -584,7 +617,7 @@ export default function ShiftAdjustmentPage() {
                                         <div
                                             key={day.dateStr}
                                             className={`
-                                            min-h-[80px] bg-white p-1 cursor-pointer transition-colors flex flex-col justify-between
+                                            min-h-[60px] xl:min-h-[80px] bg-white p-0.5 xl:p-1 cursor-pointer transition-colors flex flex-col justify-between
                                             ${!isCurrentMonth ? 'bg-slate-50 text-slate-400' : ''}
                                             ${isSelected ? 'bg-amber-50 ring-2 ring-amber-400 z-10' : 'hover:bg-slate-50'}
                                             ${shift?.type && shift.type.includes('休み') ? 'bg-slate-100' : ''} 
@@ -597,44 +630,43 @@ export default function ShiftAdjustmentPage() {
                                                     }`}>
                                                     {format(day.date, 'd')}
                                                     {day.holidayName && (
-                                                        <span className="hidden xl:inline ml-0.5 text-[9px] font-normal leading-none truncate max-w-[40px]" title={day.holidayName}>
+                                                        <span className="ml-1 text-[8px] xl:text-[9px] text-red-500 font-medium truncate max-w-[40px] xl:max-w-[60px]" title={day.holidayName}>
                                                             {day.holidayName}
                                                         </span>
                                                     )}
                                                 </span>
                                             </div>
 
-                                            <div className="flex flex-col items-center justify-start space-y-1 mt-1 w-full flex-1 overflow-hidden">
-                                                <div className="text-[10px] sm:text-xs text-slate-500 font-medium">
+                                            <div className="flex flex-col items-center justify-start space-y-0.5 xl:space-y-1 mt-0.5 xl:mt-1 w-full flex-1 overflow-hidden">
+                                                <div className="text-[9px] xl:text-[10px] text-slate-500 font-medium">
                                                     {totalOff}人
                                                 </div>
-                                                <div className="w-full space-y-1 px-1 flex flex-col items-center overflow-y-auto shrink-0 pb-1 custom-scrollbar">
+                                                <div className="w-full space-y-0.5 xl:space-y-1 px-0.5 xl:px-1 flex flex-col items-center overflow-y-auto shrink-0 pb-1 custom-scrollbar">
                                                     {employees.map(emp => {
                                                         const s = getEffectiveShift(emp.id, day.dateStr);
-                                                        if (!s) return null; // Only render explicit shifts
+                                                        if (!s) return null;
 
                                                         const isPending = `${emp.id}-${day.dateStr}` in pendingShifts;
 
                                                         let style = '';
                                                         if (isPending) {
-                                                            // Apply a universal "Unsaved / Pending" vibrant style regardless of shift type
-                                                            style = 'border-solid border-orange-500 bg-orange-100 text-orange-800 font-bold ring-1 ring-orange-400';
+                                                            style = 'border-none bg-orange-100 text-orange-800 font-bold ring-1 ring-orange-400';
                                                         } else {
                                                             if (s.type.includes('休み') && !s.type.includes('希望')) {
-                                                                style = 'border-solid border-slate-200 bg-slate-100 text-slate-600';
+                                                                style = 'border-none bg-slate-200 text-slate-600';
                                                             } else if (s.type.includes('希望')) {
-                                                                style = 'border-solid border-amber-200 bg-amber-100 text-amber-700';
+                                                                style = 'border-none bg-amber-100 text-amber-700';
                                                             } else if (s.type.includes('出勤') || s.type.includes('休日出勤')) {
-                                                                style = 'border-solid border-red-200 bg-red-100 text-red-700';
+                                                                style = 'border-red-200 bg-red-100 text-red-700 border';
                                                             } else {
-                                                                style = 'border-solid border-blue-200 bg-blue-100 text-blue-700';
+                                                                style = 'border-blue-200 bg-blue-100 text-blue-700 border';
                                                             }
                                                         }
 
                                                         return (
                                                             <div
                                                                 key={emp.id}
-                                                                className={`text-[8px] sm:text-[9px] px-0.5 py-0.5 rounded border ${style} truncate tracking-tighter w-full text-center shadow-sm select-none`}
+                                                                className={`text-[8px] xl:text-[10px] px-0.5 py-0.5 rounded ${style} truncate tracking-tighter w-full text-center shadow-sm select-none h-[14px] xl:h-[18px] flex items-center justify-center`}
                                                                 title={`${emp.name}: ${s.type}`}
                                                             >
                                                                 {emp.shortName || emp.name}
