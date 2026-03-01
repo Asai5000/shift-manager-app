@@ -16,7 +16,7 @@ export function CalendarView({ year, month, shifts, schedules, employees }: Cale
     const days = getCalendarDays(year, month);
 
     return (
-        <div className="space-y-4" id="calendar-print-view">
+        <div className="space-y-4 print:space-y-0 print:h-screen print:flex print:flex-col" id="calendar-print-view">
             <CalendarHeader year={year} month={month} />
             <CalendarGrid
                 days={days}

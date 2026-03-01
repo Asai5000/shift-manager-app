@@ -121,7 +121,7 @@ export function CalendarGrid({ days, shifts, schedules, employees }: CalendarGri
 
     return (
         <>
-            <div className="border border-slate-300 bg-white shadow-sm">
+            <div className="border border-slate-300 bg-white shadow-sm print:flex-1 print:flex print:flex-col">
                 {/* Weekday Header */}
                 <div className="grid grid-cols-7 border-b border-slate-200">
                     {DAYS_OF_WEEK.map((day, index) => (
@@ -141,7 +141,7 @@ export function CalendarGrid({ days, shifts, schedules, employees }: CalendarGri
                 </div>
 
                 {/* Days Grid - Fixed 6 Rows */}
-                <div className="grid grid-cols-7 auto-rows-fr border-b border-slate-200">
+                <div className="grid grid-cols-7 auto-rows-fr border-b border-slate-200 print:flex-1">
                     {days.map((day, dayIdx) => {
                         const dayShifts = getShiftsForDay(day.dateStr);
                         const daySchedules = getSchedulesForDay(day);
