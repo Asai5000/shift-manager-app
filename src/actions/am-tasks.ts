@@ -4,6 +4,7 @@ import { db } from '@/db';
 import { amTaskOptions, amAssignments } from '@/db/schema';
 import { eq, and, gte, lte, lt, gt, or } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { getSession } from '@/lib/session';
 
 // --- Types ---
 export interface TaskOption {
@@ -156,9 +157,14 @@ export async function getAMAssignments(startDate: string, endDate: string): Prom
         return { success: false, error: 'Failed to retrieve assignments' };
     }
 }
-
 export async function saveAMAssignment(employeeId: number, date: string, taskName: string, isAutoAssigned: boolean = false): Promise<{ success: boolean; error?: string }> {
     try {
+        const session = await getSession();
+        if (!session) return { success: false, error: '認証されていません' };
+        if (session.role !== 'admin' && session.id !== employeeId.toString()) {
+            return { success: false, error: '他の従業員のタスクは編集できません' };
+        }
+
         if (!taskName) {
             // Delete if task is empty
             await db.delete(amAssignments)
@@ -186,9 +192,13 @@ export async function saveAMAssignment(employeeId: number, date: string, taskNam
         return { success: false, error: 'Failed to save assignment' };
     }
 }
-
 export async function clearAMAssignments(startDate: string, endDate: string): Promise<{ success: boolean; error?: string }> {
     try {
+        const session = await getSession();
+        if (!session || session.role !== 'admin') {
+            return { success: false, error: '一括クリアは管理者のみ可能です' };
+        }
+
         await db.delete(amAssignments)
             .where(
                 and(
@@ -203,9 +213,13 @@ export async function clearAMAssignments(startDate: string, endDate: string): Pr
         return { success: false, error: 'Failed to clear assignments' };
     }
 }
-
 export async function clearAutoAMAssignments(startDate: string, endDate: string): Promise<{ success: boolean; error?: string }> {
     try {
+        const session = await getSession();
+        if (!session || session.role !== 'admin') {
+            return { success: false, error: '自動割当クリアは管理者のみ可能です' };
+        }
+
         await db.delete(amAssignments)
             .where(
                 and(
@@ -221,9 +235,13 @@ export async function clearAutoAMAssignments(startDate: string, endDate: string)
         return { success: false, error: 'Failed to clear auto assignments' };
     }
 }
-
 export async function generateAMAutoAssignments(year: number, month: number): Promise<{ success: boolean; error?: string }> {
     try {
+        const session = await getSession();
+        if (!session || session.role !== 'admin') {
+            return { success: false, error: '自動割当は管理者のみ可能です' };
+        }
+
         const { getEmployees } = await import('@/actions/employees');
         const { getMonthlyShifts } = await import('@/actions/shifts');
         const { getCalendarDays } = await import('@/lib/date-utils');

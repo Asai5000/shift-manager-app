@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { pmAssignments } from "@/db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { getSession } from "@/lib/session";
 
 /**
  * Get PM assignments for a specific date range
@@ -28,6 +29,12 @@ export async function getPMAssignments(startDate: string, endDate: string) {
  * Toggle a PM assignment on or off
  */
 export async function togglePMAssignment(employeeId: number, dateStr: string, currentStatus: boolean) {
+    const session = await getSession();
+    if (!session) return;
+    if (session.role !== "admin" && session.id !== employeeId.toString()) {
+        return; // 不正リクエスト
+    }
+
     if (!currentStatus) {
         // Turning ON
         const existing = await db.query.pmAssignments.findFirst({

@@ -3,6 +3,7 @@ import { getMonthlyShifts } from '@/actions/shifts';
 import { getMonthlySchedules } from '@/actions/schedules';
 import { getEmployees } from '@/actions/employees';
 import { CalendarView } from '@/components/calendar/calendar-view';
+import { getSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,10 +23,11 @@ export default async function Home(props: {
   const year = rawYear ? parseInt(Array.isArray(rawYear) ? rawYear[0] : rawYear) : now.getFullYear();
   const month = rawMonth ? parseInt(Array.isArray(rawMonth) ? rawMonth[0] : rawMonth) : now.getMonth() + 1;
 
-  const [shiftsRes, schedulesRes, employeesRes] = await Promise.all([
+  const [shiftsRes, schedulesRes, employeesRes, session] = await Promise.all([
     getMonthlyShifts(year, month),
     getMonthlySchedules(year, month),
     getEmployees(),
+    getSession(),
   ]);
 
   const shifts = shiftsRes.success && shiftsRes.data ? shiftsRes.data : [];
@@ -40,6 +42,7 @@ export default async function Home(props: {
         shifts={shifts}
         schedules={schedules}
         employees={employees}
+        session={session}
       />
     </div>
   );

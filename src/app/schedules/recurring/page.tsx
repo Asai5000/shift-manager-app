@@ -69,7 +69,7 @@ export default function RecurringSchedulesPage() {
     }
 
     return (
-        <div className="flex flex-col md:flex-row gap-6 h-[calc(100vh-200px)] min-h-[500px]">
+        <div className="flex flex-col md:flex-row gap-6 md:h-[calc(100vh-200px)] md:min-h-[500px]">
             {/* Left Panel: List */}
             <RecurringScheduleList
                 schedules={schedules}

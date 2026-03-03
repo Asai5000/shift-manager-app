@@ -5,6 +5,7 @@ import { shifts, amAssignments } from '@/db/schema';
 import { eq, and, like, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { ShiftType } from '@/constants';
+import { getSession } from '@/lib/session';
 
 export async function getMonthlyShifts(year: number, month: number) {
     // SQLite date format is YYYY-MM-DD
@@ -27,6 +28,12 @@ export async function saveShift(
     options?: { forceOverride?: boolean }
 ) {
     try {
+        const session = await getSession();
+        if (!session) return { success: false, error: '認証されていません' };
+        if (session.role !== 'admin' && data.employeeId.toString() !== session.id) {
+            return { success: false, error: '他の従業員のシフトは編集できません' };
+        }
+
         // 1. Conflict Check logic for AM Tasks
         const typeStr = data.type as string;
         const isRestingShift = typeStr.includes('休') || typeStr.includes('出張') || typeStr.includes('特別休暇');
@@ -137,6 +144,13 @@ export async function deleteShift(id: number) {
 
         if (shiftRecord.length > 0) {
             const shift = shiftRecord[0];
+
+            const session = await getSession();
+            if (!session) return { success: false, error: '認証されていません' };
+            if (session.role !== 'admin' && shift.employeeId.toString() !== session.id) {
+                return { success: false, error: '他の従業員のシフトは削除できません' };
+            }
+
             const isRestingShift = shift.type.includes('休') || shift.type.includes('出張') || shift.type.includes('特別休暇') || shift.type.includes('出勤');
 
             // Delete the shift
@@ -191,6 +205,11 @@ export async function bulkDeleteShifts(params: {
     const monthStr = `${year}-${String(month).padStart(2, '0')}`;
 
     try {
+        const session = await getSession();
+        if (!session || session.role !== 'admin') {
+            return { success: false, error: '一括削除は管理者のみ実行可能です' };
+        }
+
         const filters = [like(shifts.date, `${monthStr}%`)];
 
         if (employeeId) {

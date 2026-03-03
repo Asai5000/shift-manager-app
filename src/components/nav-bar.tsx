@@ -7,8 +7,14 @@ import { Button } from '@/components/ui/button';
 import { CalendarDays, Users, Menu, X, Settings, CalendarClock } from 'lucide-react';
 import { useState } from 'react';
 import { useUnsavedChanges } from '@/components/providers/unsaved-changes-provider';
+import { logOut } from '@/actions/auth';
+import type { SessionPayload } from '@/lib/session';
 
-export function NavBar() {
+interface NavBarProps {
+    session: SessionPayload | null;
+}
+
+export function NavBar({ session }: NavBarProps) {
     const pathname = usePathname();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const { handleNavigation } = useUnsavedChanges();
@@ -26,12 +32,12 @@ export function NavBar() {
             icon: CalendarClock,
             active: pathname.startsWith('/schedules'),
         },
-        {
+        ...(session?.role === 'admin' ? [{
             href: '/settings',
             label: 'システム設定',
             icon: Settings,
             active: pathname.startsWith('/settings'),
-        },
+        }] : []),
     ];
 
     return (
@@ -64,6 +70,21 @@ export function NavBar() {
                                 {route.label}
                             </div>
                         ))}
+                        {session && (
+                            <div className="flex items-center space-x-4 ml-4 pl-4 border-l border-slate-200">
+                                <Link href="/settings/profile" className="flex items-center group cursor-pointer hover:bg-slate-50 p-1.5 rounded-md transition-colors">
+                                    <div className="text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors">
+                                        {session.name} <span className="text-xs text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-full ml-1">{session.role === 'admin' ? '管理者' : '従業員'}</span>
+                                    </div>
+                                    <Settings className="w-4 h-4 ml-2 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                                </Link>
+                                <form action={logOut}>
+                                    <Button variant="ghost" size="sm" type="submit" className="text-slate-500 hover:text-red-600 hover:bg-red-50">
+                                        ログアウト
+                                    </Button>
+                                </form>
+                            </div>
+                        )}
                     </div>
 
                     {/* Mobile Menu Button */}
@@ -105,6 +126,28 @@ export function NavBar() {
                                 {route.label}
                             </div>
                         ))}
+                        {session && (
+                            <div className="mt-4 pt-4 border-t border-slate-200">
+                                <div
+                                    className="flex items-center justify-between mb-2 px-3 py-2 cursor-pointer hover:bg-slate-50 rounded-md transition-colors"
+                                    onClick={() => {
+                                        setIsMobileMenuOpen(false);
+                                        handleNavigation('/settings/profile');
+                                    }}
+                                >
+                                    <div className="flex items-center">
+                                        <span className="text-sm font-medium text-slate-700 mr-2">{session.name}</span>
+                                        <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{session.role === 'admin' ? '管理者' : '従業員'}</span>
+                                    </div>
+                                    <Settings className="w-4 h-4 text-slate-400" />
+                                </div>
+                                <form action={logOut}>
+                                    <Button variant="ghost" type="submit" className="w-full justify-start text-slate-500 hover:text-red-600 hover:bg-red-50 px-3">
+                                        ログアウト
+                                    </Button>
+                                </form>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

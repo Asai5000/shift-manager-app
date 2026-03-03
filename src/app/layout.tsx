@@ -12,12 +12,15 @@ export const metadata: Metadata = {
 import { UnsavedChangesProvider } from '@/components/providers/unsaved-changes-provider';
 import { UnsavedChangesDialog } from '@/components/unsaved-changes-dialog';
 import { Toaster } from 'sonner';
+import { getSession } from '@/lib/session';
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getSession();
+
   return (
     <html lang="ja">
       <body className={cn(
@@ -26,7 +29,7 @@ export default function RootLayout({
         notoSansJP.variable
       )}>
         <UnsavedChangesProvider>
-          <NavBar />
+          <NavBar session={session} />
           <main className="container mx-auto px-4 py-8 max-w-7xl">
             {children}
           </main>

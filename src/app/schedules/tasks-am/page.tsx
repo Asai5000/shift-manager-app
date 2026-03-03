@@ -12,6 +12,8 @@ import { ja } from 'date-fns/locale';
 import { Play, Trash2, XCircle, ArrowRightLeft, AlertTriangle, FilePenLine, Users, Settings, Plus, X, ArrowUp, ArrowDown, Pill, ClipboardList, Printer, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
+import { getCurrentSession } from '@/actions/session';
+import type { SessionPayload } from '@/lib/session';
 
 // --- Types ---
 interface Employee {
@@ -74,10 +76,13 @@ export default function ScheduleTasksAMPage() {
     // Pagination State
     const [weekOffset, setWeekOffset] = useState(0);
 
-    // Hydration state
+    // Hydration and Session state
     const [isMounted, setIsMounted] = useState(false);
+    const [session, setSession] = useState<SessionPayload | null>(null);
+
     useEffect(() => {
         setIsMounted(true);
+        getCurrentSession().then(setSession);
     }, []);
 
     // Confirmation Modals State
@@ -600,9 +605,11 @@ export default function ScheduleTasksAMPage() {
                     {/* Utility Buttons (right side) */}
                     <div className="flex items-center gap-1 xl:gap-2 shrink-0">
                         <span className="hidden md:flex items-center gap-1 text-xs font-bold text-slate-500"><Users className="h-3.5 w-3.5 text-blue-500" />{employees.length}名</span>
-                        <Button variant="outline" size="sm" className="h-7 xl:h-9 px-1.5 xl:px-3 text-xs" onClick={() => setShowTaskModal(true)}>
-                            <Settings className="h-3.5 w-3.5 xl:h-4 xl:w-4" /><span className="hidden xl:inline ml-1">タスク管理</span>
-                        </Button>
+                        {session?.role === 'admin' && (
+                            <Button variant="outline" size="sm" className="h-7 xl:h-9 px-1.5 xl:px-3 text-xs" onClick={() => setShowTaskModal(true)}>
+                                <Settings className="h-3.5 w-3.5 xl:h-4 xl:w-4" /><span className="hidden xl:inline ml-1">タスク管理</span>
+                            </Button>
+                        )}
                         <Button variant="outline" size="sm" className="h-7 xl:h-9 px-1.5 xl:px-3 text-xs hidden sm:flex" onClick={() => setShowStats(!showStats)}>
                             {showStats ? '統計を隠す' : '統計'}
                         </Button>
@@ -613,38 +620,42 @@ export default function ScheduleTasksAMPage() {
                 </div>
 
                 {/* Lower Row: Action Buttons - モバイルではトグルで開閉 */}
-                <div className="xl:hidden border-t border-slate-100 pt-1.5">
-                    <button
-                        className="w-full flex items-center justify-center gap-1 text-[11px] text-slate-500 hover:text-slate-700 py-0.5"
-                        onClick={() => setShowMobileActions(!showMobileActions)}
-                    >
-                        <ChevronRight className={`h-3 w-3 transition-transform ${showMobileActions ? 'rotate-90' : ''}`} />
-                        操作メニュー
-                    </button>
-                </div>
-                <div className={`flex-wrap items-center gap-1.5 xl:gap-2 border-t border-slate-100 pt-2 ${showMobileActions ? 'flex' : 'hidden xl:flex'}`}>
-                    <Button className="bg-green-600 hover:bg-green-700 text-white font-bold h-8 xl:h-9 text-xs xl:text-sm px-2 xl:px-3" onClick={handleAutoAssign} disabled={isLoading}>
-                        <Play className="h-3.5 w-3.5 xl:h-4 xl:w-4 mr-1 xl:mr-2" />自動割振
-                    </Button>
-                    <Button variant="destructive" className="font-bold h-8 xl:h-9 text-xs xl:text-sm px-2 xl:px-3" onClick={() => setShowClearAllConfirm(true)}>
-                        <Trash2 className="h-3.5 w-3.5 xl:h-4 xl:w-4 mr-1 xl:mr-2" />全削除
-                    </Button>
-                    <Button variant="secondary" className="bg-slate-500 hover:bg-slate-600 text-white font-bold h-8 xl:h-9 text-xs xl:text-sm px-2 xl:px-3" onClick={() => setShowClearAutoConfirm(true)}>
-                        <XCircle className="h-3.5 w-3.5 xl:h-4 xl:w-4 mr-1 xl:mr-2" />自動割振削除
-                    </Button>
+                {session?.role === 'admin' && (
+                    <>
+                        <div className="xl:hidden border-t border-slate-100 pt-1.5">
+                            <button
+                                className="w-full flex items-center justify-center gap-1 text-[11px] text-slate-500 hover:text-slate-700 py-0.5"
+                                onClick={() => setShowMobileActions(!showMobileActions)}
+                            >
+                                <ChevronRight className={`h-3 w-3 transition-transform ${showMobileActions ? 'rotate-90' : ''}`} />
+                                操作メニュー
+                            </button>
+                        </div>
+                        <div className={`flex-wrap items-center gap-1.5 xl:gap-2 border-t border-slate-100 pt-2 ${showMobileActions ? 'flex' : 'hidden xl:flex'}`}>
+                            <Button className="bg-green-600 hover:bg-green-700 text-white font-bold h-8 xl:h-9 text-xs xl:text-sm px-2 xl:px-3" onClick={handleAutoAssign} disabled={isLoading}>
+                                <Play className="h-3.5 w-3.5 xl:h-4 xl:w-4 mr-1 xl:mr-2" />自動割振
+                            </Button>
+                            <Button variant="destructive" className="font-bold h-8 xl:h-9 text-xs xl:text-sm px-2 xl:px-3" onClick={() => setShowClearAllConfirm(true)}>
+                                <Trash2 className="h-3.5 w-3.5 xl:h-4 xl:w-4 mr-1 xl:mr-2" />全削除
+                            </Button>
+                            <Button variant="secondary" className="bg-slate-500 hover:bg-slate-600 text-white font-bold h-8 xl:h-9 text-xs xl:text-sm px-2 xl:px-3" onClick={() => setShowClearAutoConfirm(true)}>
+                                <XCircle className="h-3.5 w-3.5 xl:h-4 xl:w-4 mr-1 xl:mr-2" />自動割振削除
+                            </Button>
 
-                    <div className="h-5 xl:h-6 w-px bg-slate-300 mx-1 xl:mx-2"></div>
+                            <div className="h-5 xl:h-6 w-px bg-slate-300 mx-1 xl:mx-2"></div>
 
-                    <Button
-                        className={`h-8 xl:h-9 font-bold transition-all text-xs xl:text-sm px-2 xl:px-3 ${isExchangeMode ? 'bg-cyan-700 ring-2 ring-cyan-400 text-white shadow-inner' : 'bg-cyan-600 hover:bg-cyan-700 text-white'}`}
-                        onClick={() => {
-                            setIsExchangeMode(!isExchangeMode);
-                            setExchangeSelection(null);
-                        }}
-                    >
-                        <ArrowRightLeft className="h-3.5 w-3.5 xl:h-4 xl:w-4 mr-1 xl:mr-2" /> 交換{isExchangeMode && ' ON'}
-                    </Button>
-                </div>
+                            <Button
+                                className={`h-8 xl:h-9 font-bold transition-all text-xs xl:text-sm px-2 xl:px-3 ${isExchangeMode ? 'bg-cyan-700 ring-2 ring-cyan-400 text-white shadow-inner' : 'bg-cyan-600 hover:bg-cyan-700 text-white'}`}
+                                onClick={() => {
+                                    setIsExchangeMode(!isExchangeMode);
+                                    setExchangeSelection(null);
+                                }}
+                            >
+                                <ArrowRightLeft className="h-3.5 w-3.5 xl:h-4 xl:w-4 mr-1 xl:mr-2" /> 交換{isExchangeMode && ' ON'}
+                            </Button>
+                        </div>
+                    </>
+                )}
             </div>
 
             {/* Warning Banner */}
@@ -734,16 +745,17 @@ export default function ScheduleTasksAMPage() {
                                             const isFreeInputMode = freeInputCells[key] || isCustomTask;
 
                                             // Exchange Mode logic
+                                            const canEdit = session?.role === 'admin' || session?.id === emp.id.toString();
                                             const isSelectedForExchange = exchangeSelection?.empId === emp.id && exchangeSelection?.dateStr === day.dateStr;
                                             const exchangeHighlight = isSelectedForExchange ? 'ring-4 ring-cyan-500 ring-offset-2 z-20 scale-105 shadow-xl transition-all duration-300 animate-[pulse_1.5s_ease-in-out_infinite]' : '';
-                                            const exchangeHover = isExchangeMode && !isAbsent ? 'cursor-pointer hover:ring-2 hover:ring-cyan-300' : '';
+                                            const exchangeHover = canEdit && isExchangeMode && !isAbsent ? 'cursor-pointer hover:ring-2 hover:ring-cyan-300' : '';
 
                                             return (
                                                 <td
                                                     key={day.dateStr}
                                                     className={`p-0.5 xl:p-1 border-r border-slate-100 relative ${bgClass} ${exchangeHover}`}
                                                     onClick={() => {
-                                                        if (isExchangeMode && !isAbsent) {
+                                                        if (canEdit && isExchangeMode && !isAbsent) {
                                                             handleCellClick(emp.id, day.dateStr);
                                                         }
                                                     }}
@@ -762,7 +774,8 @@ export default function ScheduleTasksAMPage() {
                                                             size={1}
                                                             placeholder="入力"
                                                             autoFocus={freeInputCells[key] && task === ''}
-                                                            className={`w-full min-w-0 h-[32px] xl:h-[50px] px-0.5 xl:px-1 text-center font-bold text-[10px] xl:text-[13px] rounded border focus:ring-2 focus:ring-blue-400 focus:outline-none transition-colors ${colorClass}`}
+                                                            readOnly={!canEdit}
+                                                            className={`w-full min-w-0 h-[32px] xl:h-[50px] px-0.5 xl:px-1 text-center font-bold text-[10px] xl:text-[13px] rounded border focus:ring-2 focus:ring-blue-400 focus:outline-none transition-colors ${colorClass} ${!canEdit ? 'cursor-not-allowed opacity-80' : ''}`}
                                                             value={task}
                                                             onChange={(e) => handleCellChange(emp.id, day.dateStr, e.target.value)}
                                                             onBlur={(e) => {
@@ -780,7 +793,8 @@ export default function ScheduleTasksAMPage() {
                                                             </span>
                                                             {/* モバイル用select（テキスト非表示） */}
                                                             <select
-                                                                className={`xl:hidden print:hidden w-full min-w-0 h-full px-0 text-center text-transparent text-[0px] rounded border appearance-none cursor-pointer focus:ring-2 focus:ring-blue-400 focus:outline-none transition-colors ${getBgColorOnly(colorClass)} ${task === '' ? 'print:text-transparent' : ''}`}
+                                                                disabled={!canEdit}
+                                                                className={`xl:hidden print:hidden w-full min-w-0 h-full px-0 text-center text-transparent text-[0px] rounded border appearance-none ${canEdit ? 'cursor-pointer' : 'cursor-not-allowed'} focus:ring-2 focus:ring-blue-400 focus:outline-none transition-colors ${getBgColorOnly(colorClass)} ${task === '' ? 'print:text-transparent' : ''}`}
                                                                 value={task}
                                                                 onChange={(e) => {
                                                                     if (e.target.value === '__free__') {
@@ -799,7 +813,8 @@ export default function ScheduleTasksAMPage() {
                                                             </select>
                                                             {/* デスクトップ用select（colorClassのテキスト色をそのまま適用） */}
                                                             <select
-                                                                className={`hidden xl:block print:block w-full min-w-0 h-full px-1 text-center font-bold text-[13px] rounded border appearance-none cursor-pointer focus:ring-2 focus:ring-blue-400 focus:outline-none transition-colors ${colorClass} ${task === '' ? 'print:text-transparent' : ''}`}
+                                                                disabled={!canEdit}
+                                                                className={`hidden xl:block print:block w-full min-w-0 h-full px-1 text-center font-bold text-[13px] rounded border appearance-none ${canEdit ? 'cursor-pointer' : 'cursor-not-allowed'} focus:ring-2 focus:ring-blue-400 focus:outline-none transition-colors ${colorClass} ${task === '' ? 'print:text-transparent' : ''}`}
                                                                 value={task}
                                                                 onChange={(e) => {
                                                                     if (e.target.value === '__free__') {

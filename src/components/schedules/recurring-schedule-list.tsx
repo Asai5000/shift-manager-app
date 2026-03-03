@@ -60,7 +60,7 @@ export function RecurringScheduleList({
     };
 
     return (
-        <div className="w-full md:w-1/3 flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden h-full">
+        <div className="w-full md:w-1/3 flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden h-[400px] md:h-full shrink-0">
             <div className="p-4 border-b border-slate-100 space-y-4">
                 <div className="flex items-center justify-between">
                     <h2 className="font-semibold text-slate-800 flex items-center">

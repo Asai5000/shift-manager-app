@@ -9,6 +9,12 @@ export const employees = sqliteTable("employees", {
     alias: text("alias"),
     wardDay: text("ward_day"), // Optional: e.g., 'monday'
     displayOrder: integer("display_order").notNull().default(0),
+
+    // 認証用カラム
+    loginId: text("login_id").unique(),
+    passwordHash: text("password_hash"),
+    role: text("role", { enum: ["admin", "employee"] }).notNull().default("employee"),
+
     createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(strftime('%s', 'now'))`),
 });
 

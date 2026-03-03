@@ -22,6 +22,12 @@ export default function SchedulesLayout({ children }: { children: React.ReactNod
             active: pathname.startsWith('/schedules/aggregation'),
         },
         {
+            href: '/schedules/holiday-work',
+            label: '休日出勤',
+            icon: CalendarClock,
+            active: pathname.startsWith('/schedules/holiday-work'),
+        },
+        {
             href: '/schedules/tasks-am',
             label: 'AM',
             icon: LayoutList,

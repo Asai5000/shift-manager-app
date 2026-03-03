@@ -19,6 +19,8 @@ interface Employee {
     alias: string | null;
     wardDay: string | null;
     displayOrder: number;
+    loginId?: string | null;
+    role?: 'admin' | 'employee' | string;
 }
 
 export function EmployeeList({ employees }: { employees: Employee[] }) {
@@ -71,9 +73,9 @@ export function EmployeeList({ employees }: { employees: Employee[] }) {
     }
 
     return (
-        <div className="flex flex-col md:flex-row gap-6 h-[calc(100vh-200px)] min-h-[500px]">
+        <div className="flex flex-col md:flex-row gap-6 md:h-[calc(100vh-200px)] md:min-h-[500px]">
             {/* Left Panel: Employee List */}
-            <div className="w-full md:w-1/3 flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+            <div className="w-full md:w-1/3 flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden h-[400px] md:h-full shrink-0">
                 <div className="p-4 border-b border-slate-100 space-y-4">
                     <div className="flex items-center justify-between">
                         <h2 className="font-semibold text-slate-800">従業員一覧 ({employees.length})</h2>

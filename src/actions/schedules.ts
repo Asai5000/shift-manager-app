@@ -5,6 +5,7 @@ import { schedules } from '@/db/schema';
 import { eq, or, and, like } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { startOfMonth, getDay, setDate, addWeeks, isSameMonth, format } from 'date-fns';
+import { getSession } from '@/lib/session';
 
 export async function getMonthlySchedules(year: number, month: number) {
     const monthStr = `${year}-${String(month).padStart(2, '0')}`;
@@ -87,6 +88,11 @@ export type AddScheduleData = {
 
 export async function addSchedule(data: AddScheduleData) {
     try {
+        const session = await getSession();
+        if (!session || session.role !== 'admin') {
+            return { success: false, error: '予定の編集は管理者のみ可能です' };
+        }
+
         await db.insert(schedules).values({
             employeeId: data.employeeId || null, // Ensure valid null
             type: data.type,
@@ -109,6 +115,11 @@ export async function addSchedule(data: AddScheduleData) {
 
 export async function deleteSchedule(id: number) {
     try {
+        const session = await getSession();
+        if (!session || session.role !== 'admin') {
+            return { success: false, error: '予定の削除は管理者のみ可能です' };
+        }
+
         await db.delete(schedules).where(eq(schedules.id, id));
         revalidatePath('/');
         return { success: true };
@@ -120,6 +131,11 @@ export async function deleteSchedule(id: number) {
 
 export async function updateSchedule(id: number, data: AddScheduleData) {
     try {
+        const session = await getSession();
+        if (!session || session.role !== 'admin') {
+            return { success: false, error: '予定の更新は管理者のみ可能です' };
+        }
+
         await db.update(schedules)
             .set({
                 employeeId: data.employeeId || null,

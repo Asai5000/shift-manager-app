@@ -10,6 +10,7 @@ import { ShiftForm } from '@/components/shifts/shift-form';
 import { ScheduleForm } from '@/components/schedules/schedule-form';
 import { Plus } from 'lucide-react';
 import { ShiftType } from '@/constants';
+import type { SessionPayload } from '@/lib/session';
 
 interface Employee {
     id: number;
@@ -44,9 +45,10 @@ interface CalendarGridProps {
     shifts: Shift[];
     schedules: Schedule[];
     employees: Employee[];
+    session: SessionPayload | null;
 }
 
-export function CalendarGrid({ days, shifts, schedules, employees }: CalendarGridProps) {
+export function CalendarGrid({ days, shifts, schedules, employees, session }: CalendarGridProps) {
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [modalType, setModalType] = useState<'shift' | 'schedule' | null>(null);
     const [selectedSchedule, setSelectedSchedule] = useState<Schedule | undefined>(undefined);
@@ -187,13 +189,15 @@ export function CalendarGrid({ days, shifts, schedules, employees }: CalendarGri
                                             </span>
                                         )}
                                     </div>
-                                    <button
-                                        className="p-0.5 xl:p-1 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-full"
-                                        onClick={(e) => handleOpenAddScheduleModal(day.dateStr, e)}
-                                        title="予定を追加"
-                                    >
-                                        <Plus className="w-3 h-3 xl:w-4 xl:h-4" />
-                                    </button>
+                                    {session?.role === 'admin' && (
+                                        <button
+                                            className="p-0.5 xl:p-1 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-full"
+                                            onClick={(e) => handleOpenAddScheduleModal(day.dateStr, e)}
+                                            title="予定を追加"
+                                        >
+                                            <Plus className="w-3 h-3 xl:w-4 xl:h-4" />
+                                        </button>
+                                    )}
                                 </div>
 
                                 {/* Schedules Area */}
@@ -201,9 +205,9 @@ export function CalendarGrid({ days, shifts, schedules, employees }: CalendarGri
                                     {daySchedules.map(schedule => (
                                         <div
                                             key={schedule.id}
-                                            className="text-[9px] xl:text-[11px] bg-emerald-50 text-emerald-700 px-1 py-0.25 xl:py-0.5 rounded border border-emerald-100 cursor-pointer hover:bg-emerald-100 truncate h-[14px] xl:h-[20px] leading-tight"
+                                            className={cn("text-[9px] xl:text-[11px] bg-emerald-50 text-emerald-700 px-1 py-0.25 xl:py-0.5 rounded border border-emerald-100 truncate h-[14px] xl:h-[20px] leading-tight", session?.role === 'admin' ? "cursor-pointer hover:bg-emerald-100" : "cursor-default")}
                                             title={schedule.text}
-                                            onClick={(e) => handleOpenEditScheduleModal(schedule, e)}
+                                            onClick={(e) => session?.role === 'admin' && handleOpenEditScheduleModal(schedule, e)}
                                         >
                                             {schedule.shortText || schedule.text}
                                         </div>
@@ -224,14 +228,24 @@ export function CalendarGrid({ days, shifts, schedules, employees }: CalendarGri
                                             styleClass = "bg-red-100 border-red-200 text-red-700";
                                         }
 
+                                        const isOwnShift = shift.employeeId.toString() === session?.id;
+
                                         return (
                                             <div
                                                 key={shift.id}
                                                 className={cn(
-                                                    "flex items-center justify-between text-[9px] xl:text-[11px] px-1 py-0.5 rounded h-[14px] xl:h-[20px] leading-tight cursor-pointer hover:opacity-85 transition-opacity border",
-                                                    styleClass
+                                                    "flex items-center justify-between text-[9px] xl:text-[11px] px-1 py-0.5 rounded h-[14px] xl:h-[20px] leading-tight transition-opacity border",
+                                                    (session?.role === 'admin' || isOwnShift) ? "cursor-pointer hover:opacity-85" : "cursor-default opacity-50",
+                                                    styleClass,
+                                                    isOwnShift && "ring-2 ring-blue-500 ring-offset-1 border-transparent z-10"
                                                 )}
-                                                onClick={(e) => handleOpenShiftModal(day.dateStr, shift, e)}
+                                                onClick={(e) => {
+                                                    if (session?.role === 'admin' || isOwnShift) {
+                                                        handleOpenShiftModal(day.dateStr, shift, e);
+                                                    } else {
+                                                        e.stopPropagation();
+                                                    }
+                                                }}
                                             >
                                                 <span className="font-medium truncate min-w-0 flex-1">{getEmployeeName(shift.employeeId)}</span>
                                                 <span className="hidden xl:inline text-[10px] truncate opacity-90 ml-1 shrink-0">{type.replace(/\(.*\)/, '')}</span>
@@ -258,6 +272,7 @@ export function CalendarGrid({ days, shifts, schedules, employees }: CalendarGri
                         existingShifts={getShiftsForDay(selectedDate)}
                         onSuccess={handleCloseModal}
                         initialValues={selectedShiftForEdit}
+                        session={session}
                     />
                 )}
             </Modal>

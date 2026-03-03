@@ -24,6 +24,8 @@ interface EmployeeFormProps {
         jobType: string;
         alias?: string | null;
         wardDay?: string | null;
+        loginId?: string | null;
+        role?: 'admin' | 'employee' | string;
     };
     onSuccess: () => void;
 }
@@ -128,6 +130,50 @@ export function EmployeeForm({ employee, onSuccess }: EmployeeFormProps) {
                         </option>
                     ))}
                 </select>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t border-slate-200 mt-4">
+                <h3 className="font-semibold text-slate-800 text-sm">システム設定</h3>
+
+                <div className="space-y-2">
+                    <label htmlFor="loginId" className="text-sm font-medium leading-none">
+                        ログイン ID
+                    </label>
+                    <Input
+                        id="loginId"
+                        name="loginId"
+                        defaultValue={employee?.loginId || ''}
+                        placeholder="例: emp12"
+                    />
+                    <p className="text-xs text-slate-500">ログイン時に使用する一意のIDです。</p>
+                </div>
+
+                <div className="space-y-2">
+                    <label htmlFor="password" className="text-sm font-medium leading-none">
+                        新しいパスワード {employee ? '(変更する場合のみ)' : '(初期パスワード)'}
+                    </label>
+                    <Input
+                        id="password"
+                        name="password"
+                        type="password"
+                        placeholder="••••••••"
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <label htmlFor="role" className="text-sm font-medium leading-none">
+                        システム権限
+                    </label>
+                    <select
+                        id="role"
+                        name="role"
+                        defaultValue={employee?.role || 'employee'}
+                        className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                    >
+                        <option value="employee">一般（本人のデータのみ編集可）</option>
+                        <option value="admin">管理者（すべてのデータを編集可）</option>
+                    </select>
+                </div>
             </div>
 
             <div className="pt-4">

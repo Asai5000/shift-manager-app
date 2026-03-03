@@ -11,6 +11,8 @@ import { getCalendarDays } from '@/lib/date-utils';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { ArrowRightLeft, Users, Pill, ClipboardList, FilePenLine, Printer, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getCurrentSession } from '@/actions/session';
+import type { SessionPayload } from '@/lib/session';
 
 interface Employee {
     id: number;
@@ -26,6 +28,10 @@ export default function ScheduleTasksPMPage() {
     const [month, setMonth] = useState(new Date().getMonth() + 1);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    // Hydration and Session state
+    const [isMounted, setIsMounted] = useState(false);
+    const [session, setSession] = useState<SessionPayload | null>(null);
 
     // Pagination State
     const [weekOffset, setWeekOffset] = useState(0);
@@ -59,6 +65,11 @@ export default function ScheduleTasksPMPage() {
         if (!allWeeks.length) return [];
         return allWeeks[Math.min(weekOffset, maxWeekOffset)];
     }, [allWeeks, weekOffset, maxWeekOffset]);
+
+    useEffect(() => {
+        setIsMounted(true);
+        getCurrentSession().then(setSession);
+    }, []);
 
     const loadData = async () => {
         setIsLoading(true);
@@ -400,14 +411,15 @@ export default function ScheduleTasksPMPage() {
                                             const isWardDay = !!(emp.wardDay && emp.wardDay === wardDayMap[day.date.getDay()]);
 
                                             const isAssigned = isWardDay || !!assignments[key];
-                                            const cursorClass = (!isAbsent && !isWardDay) ? 'cursor-pointer hover:bg-blue-50/50' : (isWardDay && !isAbsent) ? 'cursor-default' : 'bg-slate-100/70 cursor-not-allowed';
+                                            const canEdit = session?.role === 'admin' || session?.id === emp.id.toString();
+                                            const cursorClass = (!isAbsent && !isWardDay && canEdit) ? 'cursor-pointer hover:bg-blue-50/50' : (isWardDay && !isAbsent) || (!isAbsent && !canEdit) ? 'cursor-default opacity-80' : 'bg-slate-100/70 cursor-not-allowed';
 
                                             return (
                                                 <td
                                                     key={day.dateStr}
                                                     className={`p-0.5 xl:p-1 border-r border-slate-100 relative transition-colors ${cursorClass}`}
                                                     onClick={() => {
-                                                        if (!isAbsent && !isWardDay) handleCellClick(emp.id, day.dateStr);
+                                                        if (!isAbsent && !isWardDay && canEdit) handleCellClick(emp.id, day.dateStr);
                                                     }}
                                                 >
                                                     {schedule && !isAbsent && (

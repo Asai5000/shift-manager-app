@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { SHIFT_TYPES, ShiftType } from '@/constants';
 import { saveShift, deleteShift, bulkDeleteShifts } from '@/actions/shifts';
 
+import type { SessionPayload } from '@/lib/session';
+
 interface Employee {
     id: number;
     name: string;
@@ -19,11 +21,22 @@ interface ShiftFormProps {
     existingShifts: { id: number; employeeId: number; type: string }[];
     onSuccess: () => void;
     initialValues?: { employeeId: number; type: ShiftType };
+    session?: SessionPayload | null;
 }
 
-export function ShiftForm({ dateStr, employees, existingShifts, onSuccess, initialValues }: ShiftFormProps) {
+export function ShiftForm({ dateStr, employees, existingShifts, onSuccess, initialValues, session }: ShiftFormProps) {
     const [loading, setLoading] = useState(false);
-    const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | string>(initialValues?.employeeId || '');
+
+    // Filter available employees based on session role.
+    // If Admin, show all. If Employee, show only themselves.
+    const availableEmployees = session?.role === 'admin'
+        ? employees
+        : employees.filter(emp => emp.id.toString() === session?.id);
+
+    // If an employee doesn't have an initial value, default to themselves if they are not an admin
+    const defaultEmployeeId = initialValues?.employeeId || (session && session.role !== 'admin' ? session.id : '');
+    const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | string>(defaultEmployeeId);
+
     const [selectedType, setSelectedType] = useState<ShiftType>(initialValues?.type || '休み(終日)');
 
     async function handleAdd() {
@@ -53,8 +66,10 @@ export function ShiftForm({ dateStr, employees, existingShifts, onSuccess, initi
                 return;
             }
 
-            // Reset after add to allow continuous adding
-            setSelectedEmployeeId('');
+            // Reset after add to allow continuous adding, but keep the employee selected if they are just a regular employee
+            if (session?.role === 'admin') {
+                setSelectedEmployeeId('');
+            }
         } catch (e) {
             alert('保存に失敗しました');
         } finally {
@@ -83,9 +98,10 @@ export function ShiftForm({ dateStr, employees, existingShifts, onSuccess, initi
                         className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
                         value={selectedEmployeeId}
                         onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                        disabled={session?.role !== 'admin'}
                     >
-                        <option value="">従業員を選択</option>
-                        {employees.map((emp) => (
+                        {session?.role === 'admin' && <option value="">従業員を選択</option>}
+                        {availableEmployees.map((emp) => (
                             <option key={emp.id} value={emp.id}>
                                 {emp.name}
                             </option>
@@ -118,21 +134,24 @@ export function ShiftForm({ dateStr, employees, existingShifts, onSuccess, initi
                     <div className="space-y-2">
                         {existingShifts.map((shift) => {
                             const emp = employees.find(e => e.id === shift.employeeId);
+                            const canDelete = session?.role === 'admin' || shift.employeeId.toString() === session?.id;
                             return (
                                 <div key={shift.id} className="flex items-center justify-between p-2 bg-white border border-slate-200 rounded text-sm">
                                     <div>
                                         <span className="font-medium mr-2">{emp?.name || '不明'}</span>
                                         <span className="text-slate-500 text-xs">{shift.type}</span>
                                     </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                        onClick={() => handleDelete(shift.id)}
-                                        disabled={loading}
-                                    >
-                                        ×
-                                    </Button>
+                                    {canDelete && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                            onClick={() => handleDelete(shift.id)}
+                                            disabled={loading}
+                                        >
+                                            ×
+                                        </Button>
+                                    )}
                                 </div>
                             );
                         })}
