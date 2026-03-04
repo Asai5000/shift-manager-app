@@ -167,7 +167,8 @@ export default function ScheduleTasksAMPage() {
             setIsLoading(true);
             const empRes = await getEmployees();
             if (empRes.success && empRes.data) {
-                setEmployees(empRes.data as Employee[]);
+                const filteredEmps = empRes.data.filter((e: any) => e.jobType !== 'Other');
+                setEmployees(filteredEmps as Employee[]);
             }
 
             let currentOptions = taskOptions;
@@ -528,6 +529,7 @@ export default function ScheduleTasksAMPage() {
                 /* セルの均一高さ (休もタスクも同じ) */
                 #am-task-print-view th, #am-task-print-view td {
                     padding: 3px 2px !important;
+                    border: 1px solid #64748b !important;
                 }
                 #am-task-print-view td > div,
                 #am-task-print-view td > select {

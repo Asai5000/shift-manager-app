@@ -76,7 +76,8 @@ export default function ScheduleTasksPMPage() {
         try {
             const empsRes = await getEmployees();
             if (empsRes.success && empsRes.data) {
-                setEmployees(empsRes.data);
+                const filteredEmps = empsRes.data.filter((e: any) => e.jobType !== 'Other');
+                setEmployees(filteredEmps);
             }
 
             if (allWeeks.length > 0) {
@@ -227,6 +228,14 @@ export default function ScheduleTasksPMPage() {
                     min-height: 40px !important;
                     height: 40px !important;
                     font-size: 13px !important;
+                }
+                
+                #pm-task-print-view .print-schedule-text {
+                    font-size: 9px !important;
+                    top: 10px !important;
+                    right: 4px !important;
+                    min-height: auto !important;
+                    height: auto !important;
                 }
                 
                 /* 日付ヘッダーのフォント拡大 */
@@ -423,7 +432,7 @@ export default function ScheduleTasksPMPage() {
                                                     }}
                                                 >
                                                     {schedule && !isAbsent && (
-                                                        <div className="absolute top-1 xl:top-2 right-1 xl:right-2 text-[8px] xl:text-[10px] print:text-[12px] text-slate-500 font-bold max-w-full overflow-hidden whitespace-nowrap z-10 pointer-events-none">
+                                                        <div className="print-schedule-text absolute top-1 xl:top-2 right-1 xl:right-2 text-[8px] xl:text-[10px] text-slate-500 font-bold max-w-full overflow-hidden whitespace-nowrap z-10 pointer-events-none">
                                                             {schedule.shortText || schedule.text}
                                                         </div>
                                                     )}

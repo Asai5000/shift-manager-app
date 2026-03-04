@@ -189,7 +189,7 @@ export function CalendarGrid({ days, shifts, schedules, employees, session }: Ca
                                             </span>
                                         )}
                                     </div>
-                                    {session?.role === 'admin' && (
+                                    {!!session && (
                                         <button
                                             className="p-0.5 xl:p-1 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-full"
                                             onClick={(e) => handleOpenAddScheduleModal(day.dateStr, e)}
@@ -202,16 +202,22 @@ export function CalendarGrid({ days, shifts, schedules, employees, session }: Ca
 
                                 {/* Schedules Area */}
                                 <div className="flex flex-col gap-0.5 mb-1 overflow-hidden">
-                                    {daySchedules.map(schedule => (
-                                        <div
-                                            key={schedule.id}
-                                            className={cn("text-[9px] xl:text-[11px] bg-emerald-50 text-emerald-700 px-1 py-0.25 xl:py-0.5 rounded border border-emerald-100 truncate h-[14px] xl:h-[20px] leading-tight", session?.role === 'admin' ? "cursor-pointer hover:bg-emerald-100" : "cursor-default")}
-                                            title={schedule.text}
-                                            onClick={(e) => session?.role === 'admin' && handleOpenEditScheduleModal(schedule, e)}
-                                        >
-                                            {schedule.shortText || schedule.text}
-                                        </div>
-                                    ))}
+                                    {daySchedules.map(schedule => {
+                                        const baseText = schedule.shortText || schedule.text;
+                                        const empText = schedule.employeeId ? `(${getEmployeeName(schedule.employeeId)})` : '';
+                                        const displayText = empText ? `${baseText}${empText}` : baseText;
+
+                                        return (
+                                            <div
+                                                key={schedule.id}
+                                                className={cn("text-[9px] xl:text-[11px] bg-emerald-50 text-emerald-700 px-1 py-0.25 xl:py-0.5 rounded border border-emerald-100 truncate h-[14px] xl:h-[20px] leading-tight", !!session ? "cursor-pointer hover:bg-emerald-100" : "cursor-default")}
+                                                title={schedule.text + (empText ? ` ${empText}` : '')}
+                                                onClick={(e) => !!session && handleOpenEditScheduleModal(schedule, e)}
+                                            >
+                                                {displayText}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
 
                                 {/* Shifts Area - All Bottom Aligned */}
@@ -247,8 +253,14 @@ export function CalendarGrid({ days, shifts, schedules, employees, session }: Ca
                                                     }
                                                 }}
                                             >
-                                                <span className="font-medium truncate min-w-0 flex-1">{getEmployeeName(shift.employeeId)}</span>
-                                                <span className="hidden xl:inline text-[10px] truncate opacity-90 ml-1 shrink-0">{type.replace(/\(.*\)/, '')}</span>
+                                                <span className="font-medium truncate min-w-0 flex-1">
+                                                    {employees.find(e => e.id === shift.employeeId)?.name || 'Unknown'}
+                                                </span>
+                                                <span className="hidden xl:inline print:inline text-[10px] truncate opacity-90 ml-1 shrink-0">
+                                                    {type.includes('休日出勤') && type.includes('(')
+                                                        ? type.split('(')[1].replace(')', '')
+                                                        : type.replace(/\(.*\)/, '')}
+                                                </span>
                                             </div>
                                         );
                                     })}
