@@ -247,7 +247,7 @@ export async function generateAMAutoAssignments(year: number, month: number): Pr
         const { getCalendarDays } = await import('@/lib/date-utils');
 
         const [empRes, optRes, shiftsRes, asgRes] = await Promise.all([
-            getEmployees(),
+            getEmployees({ excludeOther: true }),
             getAMTaskOptions(),
             getMonthlyShifts(year, month),
             getAMAssignments(`${year}-${String(month).padStart(2, '0')}-01`, `${year}-${String(month).padStart(2, '0')}-31`)

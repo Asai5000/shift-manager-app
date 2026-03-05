@@ -217,9 +217,7 @@ export async function generateAutoAssignments(params: AutoAssignmentParams): Pro
 
                                 for (const d of shuffledCandidates) {
                                     const peers = employees.filter(e => e.jobType === emp.jobType);
-                                    let restCountToday = peers.filter(e => isRest(e.id, d)).length;
-                                    let newlyAssignedRestsToday = newShifts.filter(s => s.date === d && peers.some(p => p.id === s.employeeId)).length;
-                                    let totalRestsToday = restCountToday + newlyAssignedRestsToday;
+                                    let totalRestsToday = peers.filter(e => isRest(e.id, d)).length;
 
                                     if (totalRestsToday < minRests) {
                                         minRests = totalRestsToday;
@@ -332,38 +330,35 @@ export async function generateAutoAssignments(params: AutoAssignmentParams): Pro
                 const peers = employees.filter(e => e.jobType === emp.jobType);
                 const limit = emp.jobType === 'Pharmacist' ? maxRestPharmacist : maxRestAssistant;
 
-                const sortedCandidates = randomizedCandidates.sort((a, b) => {
-                    // Calculate total rests for peers on date A
-                    const restsA_base = peers.filter(e => isRest(e.id, a)).length;
-                    const newlyAssignedA = newShifts.filter(s => s.date === a && peers.some(p => p.id === s.employeeId)).length;
-                    const totalRestsA = restsA_base + newlyAssignedA;
+                // 2. Filter out candidates that already hit the daily limit for this job type
+                const validCandidates = randomizedCandidates.filter(date => {
+                    const totalRestsToday = peers.filter(e => isRest(e.id, date)).length;
+                    return totalRestsToday < limit;
+                });
 
-                    // Calculate total rests for peers on date B
-                    const restsB_base = peers.filter(e => isRest(e.id, b)).length;
-                    const newlyAssignedB = newShifts.filter(s => s.date === b && peers.some(p => p.id === s.employeeId)).length;
-                    const totalRestsB = restsB_base + newlyAssignedB;
+                if (validCandidates.length === 0) break; // Cannot assign more without breaking daily max limits
 
-                    // Primary constraint: Days with fewer rests are preferred
+                // 3. Sort remaining to balance first globally among peers, then totally, then space out for the individual
+                const sortedCandidates = validCandidates.sort((a, b) => {
+                    const peerRestsA = peers.filter(e => isRest(e.id, a)).length;
+                    const peerRestsB = peers.filter(e => isRest(e.id, b)).length;
+
+                    if (peerRestsA !== peerRestsB) {
+                        return peerRestsA - peerRestsB;
+                    }
+
+                    // Secondary: Balance total rests across ALL employees to keep the overall schedule flat
+                    const totalRestsA = employees.filter(e => isRest(e.id, a)).length;
+                    const totalRestsB = employees.filter(e => isRest(e.id, b)).length;
+
                     if (totalRestsA !== totalRestsB) {
                         return totalRestsA - totalRestsB;
                     }
 
-                    // Secondary constraint: Weeks with fewer rests are preferred
-                    const weeklyA = getWeeklyRestCount(emp.id, a);
-                    const weeklyB = getWeeklyRestCount(emp.id, b);
-                    return weeklyA - weeklyB;
+                    return 0; // Let the earlier randomization handle ties 
                 });
 
-                for (const date of sortedCandidates) {
-                    const rests_base = peers.filter(e => isRest(e.id, date)).length;
-                    const newlyAssigned = newShifts.filter(s => s.date === date && peers.some(p => p.id === s.employeeId)).length;
-                    const totalRestsToday = rests_base + newlyAssigned;
-
-                    if (totalRestsToday < limit) {
-                        bestDate = date;
-                        break;
-                    }
-                }
+                bestDate = sortedCandidates[0];
 
                 // If no date found that respects the limit, we cannot assign more rests without breaking rules.
                 if (!bestDate) break;

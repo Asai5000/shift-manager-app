@@ -12,7 +12,7 @@ export default async function HolidayWorkPage() {
         redirect('/');
     }
 
-    const res = await getEmployees();
+    const res = await getEmployees({ excludeOther: true });
     const employees = res.success && res.data ? res.data : [];
 
     // Filter only pharmacists for this feature

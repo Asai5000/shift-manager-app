@@ -26,7 +26,7 @@ export default async function Home(props: {
   const [shiftsRes, schedulesRes, employeesRes, session] = await Promise.all([
     getMonthlyShifts(year, month),
     getMonthlySchedules(year, month),
-    getEmployees(),
+    getEmployees({ excludeOther: true }),
     getSession(),
   ]);
 

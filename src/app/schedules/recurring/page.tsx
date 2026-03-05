@@ -35,7 +35,7 @@ export default function RecurringSchedulesPage() {
         // If we are just refreshing data, maybe don't set full page loading if possible
         const [schedulesRes, employeesRes] = await Promise.all([
             getRecurringSchedules(),
-            getEmployees()
+            getEmployees({ excludeOther: true })
         ]);
 
         if (schedulesRes.success && schedulesRes.data) {

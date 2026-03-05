@@ -150,8 +150,7 @@ export function CalendarGrid({ days, shifts, schedules, employees, session }: Ca
                         const isCurrentMonth = day.isCurrentMonth;
 
                         const hasWorkShift = dayShifts.some(s => {
-                            const t = s.type;
-                            return !t.includes('休み') && !t.includes('希望');
+                            return s.type.includes('休日出勤');
                         });
                         const isRedBackground = day.holidayName || hasWorkShift;
 
@@ -259,7 +258,11 @@ export function CalendarGrid({ days, shifts, schedules, employees, session }: Ca
                                                 <span className="hidden xl:inline print:inline text-[10px] truncate opacity-90 ml-1 shrink-0">
                                                     {type.includes('休日出勤') && type.includes('(')
                                                         ? type.split('(')[1].replace(')', '')
-                                                        : type.replace(/\(.*\)/, '')}
+                                                        : type === '出張(終日)'
+                                                            ? '出張'
+                                                            : type.includes('出張')
+                                                                ? type
+                                                                : type.replace(/\(.*\)/, '')}
                                                 </span>
                                             </div>
                                         );

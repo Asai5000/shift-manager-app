@@ -44,9 +44,10 @@ export async function previewHolidayAssignment(
             return (includeSundays && isSun) || (includeHolidays && isHol);
         });
 
-        // 2. Fetch Pharmacists
-        const empRes = await getEmployees();
-        if (!empRes.success || !empRes.data) throw new Error('従業員取得エラー');
+        // 3. 対象従業員（薬剤師のみ）の確保
+        // TODO: We could query jobType='薬剤師' directly, but getEmployees is cached/shared and we already filter.
+        const empRes = await getEmployees({ excludeOther: true });
+        if (!empRes.success || !empRes.data) { throw new Error('従業員取得エラー'); }
         const pharmacists = empRes.data.filter((e: any) => e.jobType === 'Pharmacist');
 
         if (pharmacists.length === 0) {

@@ -17,7 +17,7 @@ export default function LoginPage() {
                     </div>
                 </div>
                 <h1 className="text-2xl font-bold text-center text-slate-800 mb-8">
-                    シフト管理システムへログイン
+                    ログイン
                 </h1>
 
                 <form action={formAction} className="space-y-6">

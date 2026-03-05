@@ -100,7 +100,7 @@ export async function saveShift(
         // If the saved shift is a holiday work shift, set '休' for other employees on this date (only if not already manually assigned)
         if (data.type.includes('出勤')) {
             const { getEmployees } = await import('@/actions/employees');
-            const empRes = await getEmployees();
+            const empRes = await getEmployees({ excludeOther: true });
             if (empRes.success && empRes.data) {
                 const employees = empRes.data;
                 const existingAssignments = await db.select().from(amAssignments)

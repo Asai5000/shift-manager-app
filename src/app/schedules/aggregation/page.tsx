@@ -42,7 +42,7 @@ export default function AggregationPage() {
         setIsLoading(true);
         const [shiftsRes, employeesRes] = await Promise.all([
             getMonthlyShifts(year, month),
-            getEmployees()
+            getEmployees({ excludeOther: true })
         ]);
 
         if (shiftsRes.success && shiftsRes.data) {

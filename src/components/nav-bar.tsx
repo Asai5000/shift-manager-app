@@ -19,7 +19,7 @@ export function NavBar({ session }: NavBarProps) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const { handleNavigation } = useUnsavedChanges();
 
-    const routes = [
+    let routes = [
         {
             href: '/',
             label: 'カレンダー',
@@ -39,6 +39,10 @@ export function NavBar({ session }: NavBarProps) {
             active: pathname.startsWith('/settings'),
         }] : []),
     ];
+
+    if (pathname === '/login') {
+        routes = [];
+    }
 
     return (
         <nav className="sticky top-0 z-50 bg-white border-b border-slate-200 w-full">

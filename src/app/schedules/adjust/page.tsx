@@ -20,7 +20,7 @@ import { BulkDeleteModal } from '@/components/shifts/bulk-delete-modal';
 interface Employee {
     id: number;
     name: string;
-    shortName?: string | null;
+    alias?: string | null;
     displayOrder: number;
     jobType: string; // "Pharmacist" | "Assistant"
 }
@@ -86,7 +86,7 @@ export default function ShiftAdjustmentPage() {
     useEffect(() => {
         const loadData = async () => {
             const [empRes, schedRes] = await Promise.all([
-                getEmployees(),
+                getEmployees({ excludeOther: true }),
                 getMonthlySchedules(year, month)
             ]);
 
@@ -495,7 +495,7 @@ export default function ShiftAdjustmentPage() {
                 <div className="flex items-center flex-wrap gap-x-3 gap-y-1">
                     <div className="text-xs xl:text-sm shrink-0 flex items-center">
                         <span className="text-slate-500 mr-1 whitespace-nowrap">従業員:</span>
-                        <span className="font-bold truncate max-w-[80px] xl:max-w-[120px]">{selectedEmployee ? (selectedEmployee.shortName || selectedEmployee.name) : '未選択'}</span>
+                        <span className="font-bold truncate max-w-[80px] xl:max-w-[120px]">{selectedEmployee ? (selectedEmployee.alias || selectedEmployee.name) : '未選択'}</span>
                     </div>
                     <div className="h-3 w-px bg-slate-300 hidden sm:block"></div>
                     <div className="text-xs xl:text-sm shrink-0 flex items-center">
@@ -555,9 +555,9 @@ export default function ShiftAdjustmentPage() {
                                     }`}
                                 onClick={() => handleEmployeeSelect(emp.id)}
                             >
-                                <div className="font-bold text-slate-800 text-[11px] xl:text-sm truncate">
+                                <div className="font-bold text-slate-800 text-[11px] xl:text-sm truncate flex-1">
                                     <span className="hidden xl:inline">{emp.name}</span>
-                                    <span className="xl:hidden">{emp.shortName || (emp.name.length > 4 ? emp.name.slice(0, 4) : emp.name)}</span>
+                                    <span className="xl:hidden">{emp.alias || (emp.name.length > 4 ? emp.name.slice(0, 4) : emp.name)}</span>
                                 </div>
                                 <div className="text-[10px] xl:text-xs text-slate-500 shrink-0 ml-1 font-medium">
                                     ({countRestDays(emp.id)})
@@ -641,7 +641,7 @@ export default function ShiftAdjustmentPage() {
                                                 <div className="text-[9px] xl:text-[10px] text-slate-500 font-medium">
                                                     {totalOff}人
                                                 </div>
-                                                <div className="w-full space-y-0.5 xl:space-y-1 px-0.5 xl:px-1 flex flex-col items-center overflow-y-auto shrink-0 pb-1 custom-scrollbar">
+                                                <div className="w-full space-y-0.5 xl:space-y-1 px-0.5 xl:px-1 pt-1 pb-1 flex flex-col items-center overflow-y-auto shrink-0 custom-scrollbar">
                                                     {employees.map(emp => {
                                                         const s = getEffectiveShift(emp.id, day.dateStr);
                                                         if (!s) return null;
@@ -663,13 +663,16 @@ export default function ShiftAdjustmentPage() {
                                                             }
                                                         }
 
+                                                        const isSelectedEmployee = selectedEmployeeId === emp.id;
+                                                        const activeStyle = isSelectedEmployee ? 'ring-2 ring-indigo-600 ring-offset-[0.5px] scale-[1.05] z-10 font-extrabold shadow-md opacity-100' : 'opacity-90';
+
                                                         return (
                                                             <div
                                                                 key={emp.id}
-                                                                className={`text-[8px] xl:text-[10px] px-0.5 py-0.5 rounded ${style} truncate tracking-tighter w-full text-center shadow-sm select-none h-[14px] xl:h-[18px] flex items-center justify-center`}
+                                                                className={`text-[8px] xl:text-[10px] px-0.5 py-0.5 rounded ${style} truncate tracking-tighter w-full text-center shadow-sm select-none h-[14px] xl:h-[18px] flex items-center justify-center transition-all ${activeStyle}`}
                                                                 title={`${emp.name}: ${s.type}`}
                                                             >
-                                                                {emp.shortName || emp.name}
+                                                                {emp.alias || emp.name}
                                                             </div>
                                                         );
                                                     })}

@@ -2,15 +2,19 @@
 
 import { db } from '@/db';
 import { employees } from '@/db/schema';
-import { eq, asc, or } from 'drizzle-orm';
+import { eq, asc, or, ne } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { JobType } from '@/constants';
 import * as bcrypt from 'bcryptjs';
 import { getSession } from '@/lib/session';
 
-export async function getEmployees() {
+export async function getEmployees(options?: { excludeOther?: boolean }) {
     try {
-        const allEmployees = await db.select().from(employees).orderBy(asc(employees.displayOrder), asc(employees.id));
+        let query = db.select().from(employees).orderBy(asc(employees.displayOrder), asc(employees.id));
+        if (options?.excludeOther) {
+            query = query.where(ne(employees.jobType, 'Other')) as any;
+        }
+        const allEmployees = await query;
         return { success: true, data: allEmployees };
     } catch (error) {
         console.error('Failed to fetch employees:', error);
