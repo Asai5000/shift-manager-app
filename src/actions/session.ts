@@ -8,6 +8,7 @@ export async function getCurrentSession(): Promise<SessionPayload | null> {
         id: session.id,
         name: session.name,
         role: session.role,
+        keepLoggedIn: session.keepLoggedIn,
         expiresAt: session.expiresAt
     } : null;
 }
