@@ -225,8 +225,8 @@ export async function generateAutoAssignments(params: AutoAssignmentParams): Pro
                                     }
                                 }
 
-                                assignmentMap[emp.id][bestBreakDate] = '休み(終日)';
-                                newShifts.push({ employeeId: emp.id, date: bestBreakDate, type: '休み(終日)', reason: '連勤防止' });
+                                assignmentMap[emp.id][bestBreakDate] = '休日(1日)';
+                                newShifts.push({ employeeId: emp.id, date: bestBreakDate, type: '休日(1日)', reason: '連勤防止' });
                                 break; // restart the scan
                             } else {
                                 // If we can't break it here due to constraints, shift the window to keep looking
@@ -364,8 +364,8 @@ export async function generateAutoAssignments(params: AutoAssignmentParams): Pro
                 if (!bestDate) break;
 
                 if (bestDate) {
-                    assignmentMap[emp.id][bestDate] = '休み(終日)';
-                    newShifts.push({ employeeId: emp.id, date: bestDate, type: '休み(終日)', reason: '日数調整' });
+                    assignmentMap[emp.id][bestDate] = '休日(1日)';
+                    newShifts.push({ employeeId: emp.id, date: bestDate, type: '休日(1日)', reason: '日数調整' });
                 }
             }
         });

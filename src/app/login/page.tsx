@@ -49,6 +49,19 @@ export default function LoginPage() {
                             required
                         />
                     </div>
+                    <div className="flex items-center">
+                        <input
+                            id="keepLoggedIn"
+                            name="keepLoggedIn"
+                            type="checkbox"
+                            value="true"
+                            disabled={pending}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded"
+                        />
+                        <label htmlFor="keepLoggedIn" className="ml-2 block text-sm text-slate-700">
+                            ログイン状態を保持する（チェックなしの場合は30分で自動ログアウト）
+                        </label>
+                    </div>
                     <button
                         type="submit"
                         className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded shadow transition-colors disabled:opacity-50"

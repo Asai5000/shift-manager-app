@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Users, Settings, Menu, X } from 'lucide-react';
+import { Users, Settings, Menu, X, QrCode } from 'lucide-react';
 import { useState } from 'react';
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
@@ -17,6 +17,12 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
             label: '従業員管理',
             icon: Users,
             active: pathname.startsWith('/settings/employees'),
+        },
+        {
+            href: '/settings/qrcode',
+            label: 'QRコード設定',
+            icon: QrCode,
+            active: pathname.startsWith('/settings/qrcode'),
         },
         // Future items can be added here
     ];

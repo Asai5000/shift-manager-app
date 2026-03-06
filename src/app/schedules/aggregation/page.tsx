@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Calculator } from 'lucide-react';
 import { format, getDaysInMonth } from 'date-fns';
 import { ja } from 'date-fns/locale';
+import { QRCodeDisplay } from '@/components/qrcode-display';
 
 interface Employee {
     id: number;
@@ -89,14 +90,14 @@ export default function AggregationPage() {
 
     const getShiftAbbreviation = (type: string) => {
         // Rest
-        if (type === '休み(終日)') return '休';
-        if (type === '午前休み') return 'A休';
-        if (type === '午後休み') return 'P休';
+        if (type === '休日(1日)') return '休';
+        if (type === '休日(午前)') return 'A休';
+        if (type === '休日(午後)') return 'P休';
 
         // Hope
-        if (type === '希望休み(終日)') return '希休';
-        if (type === '希望午前休み') return '希A';
-        if (type === '希望午後休み') return '希P';
+        if (type === '希望休(1日)') return '希休';
+        if (type === '希望休(午前)') return '希A';
+        if (type === '希望休(午後)') return '希P';
 
         // Work
         if (type === '出勤(1日)') return '出';
@@ -104,18 +105,18 @@ export default function AggregationPage() {
         if (type === '出勤(午後)') return 'P出';
 
         // Business Trip
-        if (type === '出張(終日)') return '旅';
-        if (type === '出張(午前)') return 'A旅';
-        if (type === '出張(午後)') return 'P旅';
+        if (type === '出張(1日)') return '出';
+        if (type === '出張(午前)') return 'A出';
+        if (type === '出張(午後)') return 'P出';
 
         // Special
         if (type === '特別休暇') return '特休';
 
         // Fallback for unknown types (e.g. from legacy data)
-        if (type.includes('休み')) return '休';
+        if (type.includes('休日') || type.includes('休み')) return '休';
         if (type.includes('出勤')) return '出';
         if (type.includes('特別休暇')) return '特';
-        if (type.includes('出張')) return '旅';
+        if (type.includes('出張')) return '出';
         if (type.includes('希望')) return '希';
 
         return type.charAt(0);
@@ -123,15 +124,15 @@ export default function AggregationPage() {
 
     const getRestCount = (type: string) => {
         // Full Rest (+1)
-        if (type === '休み(終日)' || type === '希望休み(終日)') return 1;
+        if (type === '休日(1日)' || type === '希望休(1日)') return 1;
 
         // Half Rest (+0.5)
         // Note: For "Work AM", "Trip AM", etc., the other half is assumed to be Rest, so we count 0.5.
         // Also "Rest AM" means AM is rest, PM is work? Or just a half day off? 
         // Usually "AM Rest" = 0.5 days off.
         const halfRestTypes = [
-            '午前休み', '午後休み',
-            '希望午前休み', '希望午後休み',
+            '休日(午前)', '休日(午後)',
+            '希望休(午前)', '希望休(午後)',
             '休日出勤(午前)', '休日出勤(午後)', '出勤(午前)', '出勤(午後)',
             '出張(午前)', '出張(午後)'
         ];
@@ -141,11 +142,11 @@ export default function AggregationPage() {
         if (type === '特別休暇') return 0;
 
         // Full Work / Trip (+0)
-        if (type === '休日出勤(1日)' || type === '出勤(1日)' || type === '出張(終日)') return 0;
+        if (type === '休日出勤(1日)' || type === '出勤(1日)' || type === '出張(1日)') return 0;
 
         // Fallbacks
         if (type.includes('午前') || type.includes('午後')) return 0.5;
-        if (type.includes('休み')) return 1;
+        if (type.includes('休日') || type.includes('希望休')) return 1;
 
         return 0;
     };
@@ -184,13 +185,14 @@ export default function AggregationPage() {
                     </p>
                 </div>
                 <div className="flex items-center space-x-1.5 xl:space-x-2 shrink-0">
-                    <Button variant="outline" size="sm" className="px-1.5 xl:px-2 h-7 xl:h-10" onClick={handlePrev}>
+                    <QRCodeDisplay />
+                    <Button variant="outline" size="sm" className="px-1.5 xl:px-2 h-7 xl:h-10 no-print" onClick={handlePrev}>
                         <ChevronLeft className="h-3.5 w-3.5 xl:h-4 xl:w-4" />
                     </Button>
-                    <span className="font-bold text-[12px] xl:text-lg min-w-[40px] xl:min-w-[100px] text-center whitespace-nowrap">
+                    <span className="font-bold text-[12px] xl:text-lg min-w-[40px] xl:min-w-[100px] text-center whitespace-nowrap no-print">
                         <span className="hidden xl:inline">{year}年 </span>{month}月
                     </span>
-                    <Button variant="outline" size="sm" className="px-1.5 xl:px-2 h-7 xl:h-10" onClick={handleNext}>
+                    <Button variant="outline" size="sm" className="px-1.5 xl:px-2 h-7 xl:h-10 no-print" onClick={handleNext}>
                         <ChevronRight className="h-3.5 w-3.5 xl:h-4 xl:w-4" />
                     </Button>
                 </div>
@@ -248,9 +250,9 @@ export default function AggregationPage() {
                                                         <div className="flex items-center justify-center h-full w-full">
                                                             {shift ? (
                                                                 <span className={
-                                                                    shift.type.includes('休み') ? 'text-slate-400' :
-                                                                        shift.type.includes('出勤') || shift.type.includes('休日出勤') ? 'text-red-600 font-bold' :
-                                                                            shift.type.includes('希望') ? 'text-amber-500' :
+                                                                    shift.type.includes('希望') || shift.type.includes('希望休') ? 'text-amber-500' :
+                                                                        shift.type.includes('出勤') || shift.type.includes('休日出勤') || shift.type.includes('出張') || shift.type.includes('休暇') ? 'text-red-600 font-bold' :
+                                                                            shift.type.includes('休日') || shift.type.includes('休み') ? 'text-slate-400' :
                                                                                 'text-blue-600'
                                                                 }>
                                                                     {getShiftAbbreviation(shift.type)}
@@ -273,6 +275,6 @@ export default function AggregationPage() {
                     </div>
                 </CardContent>
             </Card>
-        </div>
+        </div >
     );
 }

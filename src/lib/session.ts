@@ -12,6 +12,7 @@ export type SessionPayload = {
     id: string;
     name: string;
     role: 'admin' | 'employee';
+    keepLoggedIn: boolean;
     expiresAt: Date;
 };
 
@@ -20,7 +21,7 @@ export async function encrypt(payload: SessionPayload) {
     return new SignJWT(payload)
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
-        .setExpirationTime('7d') // 7日間有効
+        .setExpirationTime(payload.expiresAt)
         .sign(encodedKey);
 }
 
@@ -37,9 +38,9 @@ export async function decrypt(session: string | undefined = '') {
 }
 
 // 3. ログイン成功時に Cookie をセットする関数
-export async function createSession(id: string, name: string, role: 'admin' | 'employee') {
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7days
-    const session = await encrypt({ id, name, role, expiresAt });
+export async function createSession(id: string, name: string, role: 'admin' | 'employee', keepLoggedIn: boolean = false) {
+    const expiresAt = new Date(Date.now() + (keepLoggedIn ? 7 * 24 * 60 * 60 * 1000 : 30 * 60 * 1000)); // 7 days or 30 mins
+    const session = await encrypt({ id, name, role, keepLoggedIn, expiresAt });
 
     const cookieStore = await cookies();
     cookieStore.set('session', session, {
@@ -51,7 +52,7 @@ export async function createSession(id: string, name: string, role: 'admin' | 'e
     });
 }
 
-// 4. セッションを更新する（有効期限を延ばす）関数 - Middleware用
+// 4. セッションを更新する（有効期限を延ばす）関数 - Middleware用 (Server Action用)
 export async function updateSession() {
     const sessionCookie = (await cookies()).get('session')?.value;
     const payload = await decrypt(sessionCookie);
@@ -60,7 +61,7 @@ export async function updateSession() {
         return null; // セッションがないか無効
     }
 
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 再度7days
+    const expiresAt = new Date(Date.now() + (payload.keepLoggedIn ? 7 * 24 * 60 * 60 * 1000 : 30 * 60 * 1000)); // 7 days or 30 mins
     const newSession = await encrypt({ ...payload, expiresAt });
 
     const cookieStore = await cookies();

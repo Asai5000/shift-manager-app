@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { decrypt, updateSession } from '@/lib/session';
+import { decrypt, encrypt } from '@/lib/session';
 
 // 保護するルート（ログインが必要なページ）のリスト
 const protectedRoutes = ['/', '/schedules', '/settings'];
@@ -45,13 +45,24 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/', request.url));
     }
 
-    // 3. アクセスごとにCookieの有効期限を延長する（オプション）
-    if (sessionCookie) {
-        // API等は除外しているので、通常の画面遷移でのみ延長
-        // return await updateSession(request); // updateSessionが少し複雑なので一旦NextResponseのみ返す
+    const res = NextResponse.next();
+
+    // 3. アクセスごとにCookieの有効期限を延長する（ローリングセッション）
+    if (sessionCookie && session) {
+        const expiresAt = new Date(Date.now() + (session.keepLoggedIn ? 7 * 24 * 60 * 60 * 1000 : 30 * 60 * 1000));
+        session.expiresAt = expiresAt;
+        const newSessionCookie = await encrypt(session);
+
+        res.cookies.set('session', newSessionCookie, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            expires: expiresAt,
+            sameSite: 'lax',
+            path: '/',
+        });
     }
 
-    return NextResponse.next();
+    return res;
 }
 
 export const config = {

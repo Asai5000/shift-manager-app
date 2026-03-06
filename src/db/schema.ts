@@ -76,3 +76,10 @@ export const pmAssignments = sqliteTable("pm_assignments", {
     date: text("date").notNull(), // ISO Date string: YYYY-MM-DD
     createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(strftime('%s', 'now'))`),
 });
+
+// System Configuration table
+export const configs = sqliteTable("configs", {
+    key: text("key").primaryKey(), // e.g., 'qrcode_url'
+    value: text("value").notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(strftime('%s', 'now'))`),
+});

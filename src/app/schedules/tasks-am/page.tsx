@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { Play, Trash2, XCircle, ArrowRightLeft, AlertTriangle, FilePenLine, Users, Settings, Plus, X, ArrowUp, ArrowDown, Pill, ClipboardList, Printer, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
+import { QRCodeDisplay } from '@/components/qrcode-display';
 import { Input } from '@/components/ui/input';
 import { getCurrentSession } from '@/actions/session';
 import type { SessionPayload } from '@/lib/session';
@@ -152,7 +153,7 @@ export default function ScheduleTasksAMPage() {
                 const taskName = loaded[key];
                 const isRest = taskName === '休';
                 // Also check other un-editable generated terms that aren't custom tasks
-                const isSystemManaged = ['休', '出張', '特別休暇', '有給休暇', '休日出勤', '出勤', '休み(終日)'].includes(taskName);
+                const isSystemManaged = ['休', '出張', '特別休暇', '有給休暇', '休日出勤', '出勤', '休日(1日)'].includes(taskName);
                 const isCustomTask = taskName !== '' && !isSystemManaged && !currentTaskOptions.some(o => o.name === taskName);
                 if (isCustomTask) {
                     newFreeInputCells[key] = true;
@@ -396,7 +397,7 @@ export default function ScheduleTasksAMPage() {
         if (!taskName) return '';
         if (taskName === '休') return '休';
         // システム管理タスクの省略
-        if (taskName === '休み(終日)') return '休';
+        if (taskName === '休日(1日)') return '休';
         if (taskName === '出張') return '出張';
         if (taskName === '特別休暇') return '特休';
         if (taskName === '有給休暇') return '有休';
@@ -673,8 +674,11 @@ export default function ScheduleTasksAMPage() {
             {/* Main Content Area */}
             <div className="flex-1 flex gap-4 min-h-0 overflow-visible print:block print:h-auto" id="am-task-print-view">
                 <Card className="flex-1 flex flex-col overflow-hidden bg-white shadow-sm border-slate-200 print:shadow-none print:border-none print:overflow-visible print:block print:h-auto">
-                    <div className="no-print hidden print:block mb-4 text-center text-lg font-bold text-slate-800">
-                        {year}年 {month}月 第{weekOffset + 1}週 スケジュール(午前)
+                    <div className="no-print hidden print:flex items-center justify-between mb-4 border-b border-slate-200 pb-2">
+                        <div className="text-lg font-bold text-slate-800">
+                            {year}年 {month}月 第{weekOffset + 1}週 スケジュール(午前)
+                        </div>
+                        <QRCodeDisplay />
                     </div>
                     <div className="flex-1 overflow-auto custom-scrollbar print:overflow-visible print:block print:h-auto">
                         <table className="w-full xl:min-w-[900px] border-collapse text-[11px] xl:text-sm">

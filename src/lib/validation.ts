@@ -8,12 +8,12 @@ interface Shift {
 
 export const getRestCount = (type: string) => {
     // Full Rest (+1)
-    if (type === '休み(終日)' || type === '希望休み(終日)') return 1;
+    if (type === '休日(1日)' || type === '希望休(1日)') return 1;
 
     // Half Rest (+0.5)
     const halfRestTypes = [
-        '午前休み', '午後休み',
-        '希望午前休み', '希望午後休み',
+        '休日(午前)', '休日(午後)',
+        '希望休(午前)', '希望休(午後)',
         '休日出勤(午前)', '休日出勤(午後)', '出勤(午前)', '出勤(午後)',
         '出張(午前)', '出張(午後)'
     ];
@@ -23,11 +23,11 @@ export const getRestCount = (type: string) => {
     if (type === '特別休暇') return 0;
 
     // Full Work / Trip (+0)
-    if (type === '休日出勤(1日)' || type === '出勤(1日)' || type === '出張(終日)') return 0;
+    if (type === '休日出勤(1日)' || type === '出勤(1日)' || type === '出張(1日)') return 0;
 
     // Fallbacks
     if (type.includes('午前') || type.includes('午後')) return 0.5;
-    if (type.includes('休み')) return 1;
+    if (type.includes('休日') || type.includes('希望休')) return 1;
 
     return 0;
 };

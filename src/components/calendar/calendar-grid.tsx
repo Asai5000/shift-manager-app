@@ -152,7 +152,7 @@ export function CalendarGrid({ days, shifts, schedules, employees, session }: Ca
                         const hasWorkShift = dayShifts.some(s => {
                             return s.type.includes('休日出勤');
                         });
-                        const isRedBackground = day.holidayName || hasWorkShift;
+                        const isRedBackground = day.holidayName || day.isSunday || hasWorkShift;
 
                         return (
                             <div
@@ -227,10 +227,12 @@ export function CalendarGrid({ days, shifts, schedules, employees, session }: Ca
 
                                         if (type.includes('希望')) {
                                             styleClass = "bg-orange-100 border-transparent text-orange-800";
-                                        } else if (type.includes('休み') || type.includes('午前休み') || type.includes('午後休み')) {
+                                        } else if (type.includes('出勤') || type.includes('出張') || type.includes('休暇')) {
+                                            styleClass = "bg-red-100 border-red-200 text-red-700";
+                                        } else if (type.includes('休日') || type.includes('休み')) {
                                             styleClass = "bg-slate-100 border-transparent text-slate-500";
                                         } else {
-                                            styleClass = "bg-red-100 border-red-200 text-red-700";
+                                            styleClass = "bg-blue-100 border-blue-200 text-blue-700";
                                         }
 
                                         const isOwnShift = shift.employeeId.toString() === session?.id;
@@ -258,7 +260,7 @@ export function CalendarGrid({ days, shifts, schedules, employees, session }: Ca
                                                 <span className="hidden xl:inline print:inline text-[10px] truncate opacity-90 ml-1 shrink-0">
                                                     {type.includes('休日出勤') && type.includes('(')
                                                         ? type.split('(')[1].replace(')', '')
-                                                        : type === '出張(終日)'
+                                                        : type === '出張(1日)'
                                                             ? '出張'
                                                             : type.includes('出張')
                                                                 ? type

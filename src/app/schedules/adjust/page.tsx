@@ -3,18 +3,105 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Settings2, X, Sparkles, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings2, X, Sparkles, Trash2, Loader2 } from 'lucide-react';
 import { getEmployees } from '@/actions/employees';
 import { getMonthlyShifts, saveShift, deleteShift } from '@/actions/shifts';
 import { getMonthlySchedules } from '@/actions/schedules';
+import { getAMAssignments, AMAssignment } from '@/actions/am-tasks';
 import { getCalendarDays } from '@/lib/date-utils';
 import { SHIFT_TYPES } from '@/constants';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths, addMonths } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { Toaster, toast } from 'sonner';
 import { useUnsavedChanges } from '@/components/providers/unsaved-changes-provider';
 import { AutoAssignmentModal } from '@/components/shifts/auto-assignment-modal';
 import { BulkDeleteModal } from '@/components/shifts/bulk-delete-modal';
+
+import {
+    DndContext,
+    MouseSensor,
+    useSensor,
+    useSensors,
+    useDraggable,
+    useDroppable,
+    DragEndEvent,
+    DragStartEvent,
+    DragOverlay
+} from '@dnd-kit/core';
+
+// Helper for shift styles
+const getShiftStyle = (type: string, isPending: boolean) => {
+    if (isPending) return 'border-none bg-orange-100 text-orange-800 font-bold ring-1 ring-orange-400';
+    if (type.includes('希望')) return 'border-none bg-amber-100 text-amber-700';
+    if (type.includes('出勤') || type.includes('出張') || type.includes('休暇')) return 'border-red-200 bg-red-100 text-red-700 border';
+    if (type.includes('休日') || type.includes('休み')) return 'border-none bg-slate-200 text-slate-600';
+    return 'border-blue-200 bg-blue-100 text-blue-700 border';
+};
+
+function DraggableShift({ id, emp, date, type, style, activeStyle, children }: any) {
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+        id,
+        data: { employeeId: emp.id, sourceDate: date, type }
+    });
+    return (
+        <div
+            ref={setNodeRef}
+            {...listeners}
+            {...attributes}
+            className={`text-[8px] xl:text-[10px] px-0.5 py-0.5 rounded ${style} truncate tracking-tighter w-full text-center shadow-sm select-none h-[14px] xl:h-[18px] flex items-center justify-center transition-all ${activeStyle} cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-blue-400 ${isDragging ? 'opacity-30' : ''}`}
+            title={`${emp.name}: ${type}`}
+            onClick={(e) => {
+                e.stopPropagation();
+            }}
+        >
+            {children}
+        </div>
+    );
+}
+
+function DroppableEmployee({ emp, isSelected, countOff, onClick }: any) {
+    const { isOver, setNodeRef } = useDroppable({ id: `emp-${emp.id}` });
+    return (
+        <div
+            ref={setNodeRef}
+            className={`px-2 xl:px-3 py-1.5 xl:py-2 border rounded-lg cursor-pointer transition-colors flex items-center justify-between shadow-sm shrink-0 xl:shrink-auto min-w-[70px] xl:min-w-0 ${isSelected
+                ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-300'
+                : 'border-slate-200 hover:bg-slate-50'
+                } ${isOver ? 'ring-2 ring-green-500 bg-green-50' : ''}`}
+            onClick={onClick}
+        >
+            <div className="font-bold text-slate-800 text-[11px] xl:text-sm truncate flex-1">
+                <span className="hidden xl:inline">{emp.name}</span>
+                <span className="xl:hidden">{emp.alias || (emp.name.length > 4 ? emp.name.slice(0, 4) : emp.name)}</span>
+            </div>
+            <div className="text-[10px] xl:text-xs text-slate-500 shrink-0 ml-1 font-medium">
+                ({countOff})
+            </div>
+        </div>
+    );
+}
+
+function DroppableDateCell({ id, onClick, isCurrentMonth, isSelected, shiftTypeStr, isRedBackground, children }: any) {
+    const { isOver, setNodeRef } = useDroppable({ id: `date-${id}` });
+    const getBgColor = () => {
+        if (isOver) return 'bg-green-50 ring-2 ring-green-400 z-20';
+        if (isSelected) return 'bg-amber-50 ring-2 ring-amber-400 z-10';
+        if (!isCurrentMonth) return 'bg-slate-50 text-slate-400';
+        if (isRedBackground) return 'bg-red-50';
+        if (shiftTypeStr && (shiftTypeStr.includes('休日') || shiftTypeStr.includes('休み')) && !shiftTypeStr.includes('休日出勤')) return 'bg-slate-100';
+        return 'bg-white hover:bg-slate-50';
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={`min-h-[60px] xl:min-h-[80px] p-0.5 xl:p-1 cursor-pointer transition-colors flex flex-col justify-between ${getBgColor()}`}
+            onClick={onClick}
+        >
+            {children}
+        </div>
+    );
+}
 
 // Types
 interface Employee {
@@ -46,15 +133,95 @@ export default function ShiftAdjustmentPage() {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [shifts, setShifts] = useState<Shift[]>([]);
     const [schedules, setSchedules] = useState<Schedule[]>([]);
+    const [amAssignments, setAmAssignments] = useState<AMAssignment[]>([]);
 
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
     const [showMobileActions, setShowMobileActions] = useState(false);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [pendingShifts, setPendingShifts] = useState<Record<string, string>>({}); // Key: "empId-date", Value: type (empty string = delete)
-    const [selectedShiftType, setSelectedShiftType] = useState<string>('休み(終日)');
+    const [selectedShiftType, setSelectedShiftType] = useState<string>('休日(1日)');
     const [isSaving, setIsSaving] = useState(false);
 
     const { setIsDirty } = useUnsavedChanges();
+
+    // State for D&D
+    const [activeDragData, setActiveDragData] = useState<any>(null);
+
+    // PC only: require small movement to drag (5px)
+    const sensors = useSensors(
+        useSensor(MouseSensor, {
+            activationConstraint: {
+                distance: 5,
+            },
+        })
+    );
+
+    const handleDragStart = (e: DragStartEvent) => {
+        setActiveDragData(e.active.data.current);
+    };
+
+    const handleDragEnd = (e: DragEndEvent) => {
+        setActiveDragData(null);
+        const { active, over } = e;
+        if (!over) return;
+
+        const sourceData = active.data.current;
+        const overId = over.id as string;
+
+        if (!sourceData) return;
+
+        const { employeeId: sourceEmpId, sourceDate, type } = sourceData;
+
+        // Helper to get effective shift within drag context
+        const hasExistingShift = (empId: number, dateStr: string) => {
+            // First check pending shifts
+            const key = `${empId}-${dateStr}`;
+            if (key in pendingShifts) {
+                const pendingType = pendingShifts[key];
+                if (pendingType === '') return false; // Pending deletion means it's empty
+                return true; // Pending assignment
+            }
+            // Then check saved shifts
+            return shifts.some(s => s.employeeId === empId && s.date === dateStr);
+        };
+
+        // Dropped on a specific Date cell
+        if (overId.startsWith('date-')) {
+            const targetDate = overId.replace('date-', '');
+            if (targetDate === sourceDate) return;
+
+            if (hasExistingShift(sourceEmpId, targetDate)) {
+                toast.error('既にシフトが入力されているため移動できません。');
+                return;
+            }
+
+            setPendingShifts(prev => {
+                const next = { ...prev };
+                next[`${sourceEmpId}-${sourceDate}`] = ''; // Remove from source
+                next[`${sourceEmpId}-${targetDate}`] = type; // Move to target
+                return next;
+            });
+            setIsDirty(true);
+        }
+        // Dropped on a specific Employee cell
+        else if (overId.startsWith('emp-')) {
+            const targetEmpId = parseInt(overId.replace('emp-', ''), 10);
+            if (targetEmpId === sourceEmpId) return;
+
+            if (hasExistingShift(targetEmpId, sourceDate)) {
+                toast.error('既にシフトが入力されているため移動できません。');
+                return;
+            }
+
+            setPendingShifts(prev => {
+                const next = { ...prev };
+                next[`${sourceEmpId}-${sourceDate}`] = ''; // Remove from source
+                next[`${targetEmpId}-${sourceDate}`] = type; // Give to target
+                return next;
+            });
+            setIsDirty(true);
+        }
+    };
 
     // Helper to fetch 3 months of shifts
     const fetchAllShifts = async () => {
@@ -84,6 +251,16 @@ export default function ShiftAdjustmentPage() {
 
     // Load Data
     useEffect(() => {
+        // Fetch AM Tasks (3 months span)
+        const fetchAllAMTasks = async () => {
+            const startDate = format(startOfMonth(subMonths(new Date(year, month - 1), 1)), 'yyyy-MM-dd');
+            const endDate = format(endOfMonth(addMonths(new Date(year, month - 1), 1)), 'yyyy-MM-dd');
+            const res = await getAMAssignments(startDate, endDate);
+            if (res.success && res.data) {
+                setAmAssignments(res.data);
+            }
+        };
+
         const loadData = async () => {
             const [empRes, schedRes] = await Promise.all([
                 getEmployees({ excludeOther: true }),
@@ -93,7 +270,7 @@ export default function ShiftAdjustmentPage() {
             if (empRes.success && empRes.data) setEmployees(empRes.data as Employee[]);
             if (schedRes.success && schedRes.data) setSchedules(schedRes.data as Schedule[]);
 
-            await fetchAllShifts();
+            await Promise.all([fetchAllShifts(), fetchAllAMTasks()]);
             setPendingShifts({});
         };
         loadData();
@@ -151,12 +328,12 @@ export default function ShiftAdjustmentPage() {
 
     const getRestCount = (type: string) => {
         // Full Rest (+1)
-        if (type === '休み(終日)' || type === '希望休み(終日)') return 1;
+        if (type === '休日(1日)' || type === '希望休(1日)') return 1;
 
         // Half Rest (+0.5)
         const halfRestTypes = [
-            '午前休み', '午後休み',
-            '希望午前休み', '希望午後休み',
+            '休日(午前)', '休日(午後)',
+            '希望休(午前)', '希望休(午後)',
             '休日出勤(午前)', '休日出勤(午後)', '出勤(午前)', '出勤(午後)',
             '出張(午前)', '出張(午後)'
         ];
@@ -166,11 +343,11 @@ export default function ShiftAdjustmentPage() {
         if (type === '特別休暇') return 0;
 
         // Full Work / Trip (+0)
-        if (type === '休日出勤(1日)' || type === '出勤(1日)' || type === '出張(終日)') return 0;
+        if (type === '休日出勤(1日)' || type === '出勤(1日)' || type === '出張(1日)') return 0;
 
         // Fallbacks
         if (type.includes('午前') || type.includes('午後')) return 0.5;
-        if (type.includes('休み')) return 1;
+        if (type.includes('休日') || type.includes('希望休')) return 1;
 
         return 0;
     };
@@ -251,8 +428,41 @@ export default function ShiftAdjustmentPage() {
             });
         });
 
+        // 3. Check for AM Task overlaps with absent mornings
+        amAssignments.forEach(amTask => {
+            // Skip check if the AM task is empty or just explicitly "休" itself
+            if (!amTask.taskName || amTask.taskName === '休') return;
+
+            const shift = getEffectiveShift(amTask.employeeId, amTask.date);
+            let isAbsentMorning = false;
+
+            if (shift) {
+                // Check shift types that mean absence in the morning
+                const absentAMTypes = ['休日(1日)', '休日(午前)', '希望休(1日)', '希望休(午前)', '出張(午後)', '出勤(午後)', '休日出勤(午後)'];
+                if (absentAMTypes.includes(shift.type)) {
+                    isAbsentMorning = true;
+                }
+            } else {
+                // No shift explicitly set. Is it a closed day implicitly making them rest?
+                const dayObj = days.find(d => d.dateStr === amTask.date);
+                if (dayObj && (dayObj.isSunday || dayObj.isHoliday || holidayWorkDates.has(amTask.date))) {
+                    isAbsentMorning = true;
+                }
+            }
+
+            if (isAbsentMorning) {
+                const empName = employees.find(e => e.id === amTask.employeeId)?.name || '不明';
+                errors.push({
+                    type: 'error',
+                    message: `${format(new Date(amTask.date), 'M/d')}: ${empName}さんはAMにタスク「${amTask.taskName}」がありますが、午前中が休み(または不在)のシフトになっています`,
+                    date: amTask.date,
+                    employeeId: amTask.employeeId
+                });
+            }
+        });
+
         setValidationErrors(errors);
-    }, [pendingShifts, shifts, schedules, employees, days, holidayWorkDates]);
+    }, [pendingShifts, shifts, schedules, employees, days, holidayWorkDates, amAssignments]);
 
     const countRestDays = (empId: number) => {
         const currentMonthDays = days.filter(d => d.isCurrentMonth).map(d => d.dateStr);
@@ -300,6 +510,19 @@ export default function ShiftAdjustmentPage() {
 
     const handleSave = async () => {
         if (Object.keys(pendingShifts).length === 0) return;
+
+        // Show confirmation modal if there are errors
+        if (validationErrors.length > 0) {
+            setIsConfirmModalOpen(true);
+            return;
+        }
+
+        // Otherwise save directly
+        await confirmSave();
+    };
+
+    const confirmSave = async () => {
+        setIsConfirmModalOpen(false);
         setIsSaving(true);
 
         try {
@@ -357,6 +580,7 @@ export default function ShiftAdjustmentPage() {
     // ... (existing state)
     const [isAutoAssignModalOpen, setIsAutoAssignModalOpen] = useState(false);
     const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
     // ... (existing helper functions)
 
@@ -382,6 +606,19 @@ export default function ShiftAdjustmentPage() {
 
     return (
         <div className="flex flex-col h-[calc(100vh-4rem)]">
+            {/* Loading Overlay */}
+            {isSaving && (
+                <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center backdrop-blur-[1px]">
+                    <div className="bg-white p-6 rounded-xl shadow-2xl flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-200">
+                        <Loader2 className="h-10 w-10 text-blue-600 animate-spin" />
+                        <div className="text-center">
+                            <p className="font-bold text-slate-800 text-lg">保存中...</p>
+                            <p className="text-slate-500 text-sm">システムを更新しています。少々お待ちください。</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <AutoAssignmentModal
                 isOpen={isAutoAssignModalOpen}
                 onClose={() => setIsAutoAssignModalOpen(false)}
@@ -403,6 +640,33 @@ export default function ShiftAdjustmentPage() {
                     setPendingShifts({});
                 }}
             />
+
+            {/* Error Confirmation Modal */}
+            {isConfirmModalOpen && (
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+                        <div className="p-6">
+                            <h3 className="text-lg font-bold text-red-600 mb-4 flex items-center">
+                                <Sparkles className="w-5 h-5 mr-2" />
+                                警告：エラー項目が残っています
+                            </h3>
+                            <p className="text-sm text-slate-600 mb-6">
+                                最終チェックで {validationErrors.length} 件のエラーまたは警告が検出されています。
+                                このまま保存してよろしいですか？
+                            </p>
+
+                            <div className="flex justify-end gap-3">
+                                <Button variant="outline" onClick={() => setIsConfirmModalOpen(false)}>
+                                    キャンセルして修正する
+                                </Button>
+                                <Button variant="destructive" onClick={confirmSave}>
+                                    このまま保存する
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Header */}
             <div className="flex items-center justify-between py-2 xl:py-4 px-3 xl:px-6 border-b border-slate-200 bg-white gap-2">
@@ -539,274 +803,271 @@ export default function ShiftAdjustmentPage() {
 
             {/* ... (Rest of the component remains largely the same) */}
             {/* Main Content (3 Columns) */}
-            <div className="flex-1 flex flex-col xl:flex-row overflow-auto xl:overflow-hidden bg-slate-50">
-                {/* Left: Employee Selection */}
-                <div className="w-full xl:w-48 border-b xl:border-b-0 xl:border-r border-slate-200 bg-white flex flex-col shrink-0">
-                    <div className="p-3 xl:p-4 border-b border-slate-100 font-semibold text-slate-700 bg-slate-50/50 hidden xl:block">
-                        従業員選択
+            <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                <div className="flex-1 flex flex-col xl:flex-row overflow-auto xl:overflow-hidden bg-slate-50">
+                    {/* Left: Employee Selection */}
+                    <div className="w-full xl:w-48 border-b xl:border-b-0 xl:border-r border-slate-200 bg-white flex flex-col shrink-0">
+                        <div className="p-3 xl:p-4 border-b border-slate-100 font-semibold text-slate-700 bg-slate-50/50 hidden xl:block">
+                            従業員選択
+                        </div>
+                        <div className="flex flex-row xl:flex-col xl:flex-1 overflow-x-auto xl:overflow-y-auto xl:overflow-x-hidden p-1.5 xl:p-2 space-x-1.5 xl:space-x-0 xl:space-y-2 custom-scrollbar">
+                            {employees.map(emp => (
+                                <DroppableEmployee
+                                    key={emp.id}
+                                    emp={emp}
+                                    isSelected={selectedEmployeeId === emp.id}
+                                    countOff={countRestDays(emp.id)}
+                                    onClick={() => handleEmployeeSelect(emp.id)}
+                                />
+                            ))}
+                        </div>
                     </div>
-                    <div className="flex flex-row xl:flex-col xl:flex-1 overflow-x-auto xl:overflow-y-auto xl:overflow-x-hidden p-1.5 xl:p-2 space-x-1.5 xl:space-x-0 xl:space-y-2 custom-scrollbar">
-                        {employees.map(emp => (
-                            <div
-                                key={emp.id}
-                                className={`px-2 xl:px-3 py-1.5 xl:py-2 border rounded-lg cursor-pointer transition-colors flex items-center justify-between shadow-sm shrink-0 xl:shrink-auto min-w-[70px] xl:min-w-0 ${selectedEmployeeId === emp.id
-                                    ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-300'
-                                    : 'border-slate-200 hover:bg-slate-50'
-                                    }`}
-                                onClick={() => handleEmployeeSelect(emp.id)}
-                            >
-                                <div className="font-bold text-slate-800 text-[11px] xl:text-sm truncate flex-1">
-                                    <span className="hidden xl:inline">{emp.name}</span>
-                                    <span className="xl:hidden">{emp.alias || (emp.name.length > 4 ? emp.name.slice(0, 4) : emp.name)}</span>
-                                </div>
-                                <div className="text-[10px] xl:text-xs text-slate-500 shrink-0 ml-1 font-medium">
-                                    ({countRestDays(emp.id)})
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
 
-                {/* Center: Calendar */}
-                <div className="flex-1 flex flex-col overflow-hidden min-h-[300px] xl:min-h-[400px]">
-                    <div className="p-4 border-b border-slate-200 bg-white flex justify-between items-center shadow-sm z-10 hidden xl:flex">
-                        <span className="font-semibold text-slate-700">月間カレンダー</span>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-2 xl:p-4 custom-scrollbar">
-                        <div className="overflow-x-auto custom-scrollbar -mx-2 px-2 xl:mx-0 xl:px-0">
-                            <div className="grid grid-cols-7 gap-px bg-slate-200 border border-slate-200 rounded-lg overflow-hidden shadow-sm min-w-0">
-                                {/* Headers */}
-                                {['日', '月', '火', '水', '木', '金', '土'].map((d, i) => (
-                                    <div key={d} className={`p-1 xl:p-2 text-center text-[10px] xl:text-xs font-bold bg-slate-50 ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-slate-600'}`}>
-                                        {d}
-                                    </div>
-                                ))}
-
-                                {/* Days */}
-                                {days.map(day => {
-                                    const isSelected = selectedDate === day.dateStr;
-                                    const isCurrentMonth = day.isCurrentMonth;
-                                    const shift = selectedEmployeeId ? getEffectiveShift(selectedEmployeeId, day.dateStr) : null;
-
-                                    // Calculate Rest Counts
-                                    let totalOff = 0;
-                                    let pharmacistOff = 0;
-                                    let assistantOff = 0;
-
-                                    employees.forEach(emp => {
-                                        const s = getEffectiveShift(emp.id, day.dateStr);
-                                        let restValue = 0;
-
-                                        if (s) {
-                                            restValue = getRestCount(s.type);
-                                        } else {
-                                            // Use effficient Set lookup (which respects pending shifts)
-                                            if (holidayWorkDates.has(day.dateStr)) {
-                                                restValue = 1;
-                                            }
-                                        }
-
-                                        if (restValue > 0) {
-                                            totalOff += restValue;
-                                            if (emp.jobType === 'Pharmacist') pharmacistOff += restValue;
-                                            else if (emp.jobType === 'Assistant') assistantOff += restValue;
-                                        }
-                                    });
-
-                                    return (
-                                        <div
-                                            key={day.dateStr}
-                                            className={`
-                                            min-h-[60px] xl:min-h-[80px] bg-white p-0.5 xl:p-1 cursor-pointer transition-colors flex flex-col justify-between
-                                            ${!isCurrentMonth ? 'bg-slate-50 text-slate-400' : ''}
-                                            ${isSelected ? 'bg-amber-50 ring-2 ring-amber-400 z-10' : 'hover:bg-slate-50'}
-                                            ${shift?.type && shift.type.includes('休み') ? 'bg-slate-100' : ''} 
-                                        `}
-                                            onClick={() => handleCellClick(day.dateStr)}
-                                        >
-                                            <div className="flex justify-center items-center">
-                                                <span className={`text-sm font-bold ${day.isSunday || day.holidayName ? 'text-red-500' :
-                                                    day.isSaturday ? 'text-blue-500' : 'text-slate-700'
-                                                    }`}>
-                                                    {format(day.date, 'd')}
-                                                    {day.holidayName && (
-                                                        <span className="ml-1 text-[8px] xl:text-[9px] text-red-500 font-medium truncate max-w-[40px] xl:max-w-[60px]" title={day.holidayName}>
-                                                            {day.holidayName}
-                                                        </span>
-                                                    )}
-                                                </span>
-                                            </div>
-
-                                            <div className="flex flex-col items-center justify-start space-y-0.5 xl:space-y-1 mt-0.5 xl:mt-1 w-full flex-1 overflow-hidden">
-                                                <div className="text-[9px] xl:text-[10px] text-slate-500 font-medium">
-                                                    {totalOff}人
-                                                </div>
-                                                <div className="w-full space-y-0.5 xl:space-y-1 px-0.5 xl:px-1 pt-1 pb-1 flex flex-col items-center overflow-y-auto shrink-0 custom-scrollbar">
-                                                    {employees.map(emp => {
-                                                        const s = getEffectiveShift(emp.id, day.dateStr);
-                                                        if (!s) return null;
-
-                                                        const isPending = `${emp.id}-${day.dateStr}` in pendingShifts;
-
-                                                        let style = '';
-                                                        if (isPending) {
-                                                            style = 'border-none bg-orange-100 text-orange-800 font-bold ring-1 ring-orange-400';
-                                                        } else {
-                                                            if (s.type.includes('休み') && !s.type.includes('希望')) {
-                                                                style = 'border-none bg-slate-200 text-slate-600';
-                                                            } else if (s.type.includes('希望')) {
-                                                                style = 'border-none bg-amber-100 text-amber-700';
-                                                            } else if (s.type.includes('出勤') || s.type.includes('休日出勤')) {
-                                                                style = 'border-red-200 bg-red-100 text-red-700 border';
-                                                            } else {
-                                                                style = 'border-blue-200 bg-blue-100 text-blue-700 border';
-                                                            }
-                                                        }
-
-                                                        const isSelectedEmployee = selectedEmployeeId === emp.id;
-                                                        const activeStyle = isSelectedEmployee ? 'ring-2 ring-indigo-600 ring-offset-[0.5px] scale-[1.05] z-10 font-extrabold shadow-md opacity-100' : 'opacity-90';
-
-                                                        return (
-                                                            <div
-                                                                key={emp.id}
-                                                                className={`text-[8px] xl:text-[10px] px-0.5 py-0.5 rounded ${style} truncate tracking-tighter w-full text-center shadow-sm select-none h-[14px] xl:h-[18px] flex items-center justify-center transition-all ${activeStyle}`}
-                                                                title={`${emp.name}: ${s.type}`}
-                                                            >
-                                                                {emp.alias || emp.name}
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
+                    {/* Center: Calendar */}
+                    <div className="flex-1 flex flex-col overflow-hidden min-h-[300px] xl:min-h-[400px]">
+                        <div className="p-4 border-b border-slate-200 bg-white flex justify-between items-center shadow-sm z-10 hidden xl:flex">
+                            <span className="font-semibold text-slate-700">月間カレンダー</span>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-2 xl:p-4 custom-scrollbar">
+                            <div className="overflow-x-auto custom-scrollbar -mx-2 px-2 xl:mx-0 xl:px-0">
+                                <div className="grid grid-cols-7 gap-px bg-slate-200 border border-slate-200 rounded-lg overflow-hidden shadow-sm min-w-0">
+                                    {/* Headers */}
+                                    {['日', '月', '火', '水', '木', '金', '土'].map((d, i) => (
+                                        <div key={d} className={`p-1 xl:p-2 text-center text-[10px] xl:text-xs font-bold bg-slate-50 ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-slate-600'}`}>
+                                            {d}
                                         </div>
-                                    );
-                                })}
+                                    ))}
+
+                                    {/* Days */}
+                                    {days.map(day => {
+                                        const isSelected = selectedDate === day.dateStr;
+                                        const isCurrentMonth = day.isCurrentMonth;
+                                        const shift = selectedEmployeeId ? getEffectiveShift(selectedEmployeeId, day.dateStr) : null;
+
+                                        // Calculate Rest Counts
+                                        let totalOff = 0;
+                                        let pharmacistOff = 0;
+                                        let assistantOff = 0;
+
+                                        employees.forEach(emp => {
+                                            const s = getEffectiveShift(emp.id, day.dateStr);
+                                            let restValue = 0;
+
+                                            if (s) {
+                                                restValue = getRestCount(s.type);
+                                            } else {
+                                                // Use effficient Set lookup (which respects pending shifts)
+                                                if (holidayWorkDates.has(day.dateStr)) {
+                                                    restValue = 1;
+                                                }
+                                            }
+
+                                            if (restValue > 0) {
+                                                totalOff += restValue;
+                                                if (emp.jobType === 'Pharmacist') pharmacistOff += restValue;
+                                                else if (emp.jobType === 'Assistant') assistantOff += restValue;
+                                            }
+                                        });
+
+                                        return (
+                                            <DroppableDateCell
+                                                key={day.dateStr}
+                                                id={day.dateStr}
+                                                onClick={() => handleCellClick(day.dateStr)}
+                                                isCurrentMonth={isCurrentMonth}
+                                                isSelected={isSelected}
+                                                shiftTypeStr={shift?.type}
+                                                isRedBackground={day.isHoliday || day.isSunday || holidayWorkDates.has(day.dateStr)}
+                                            >
+                                                <div className="flex justify-center items-center">
+                                                    <span className={`text-sm font-bold ${day.isSunday || day.holidayName ? 'text-red-500' :
+                                                        day.isSaturday ? 'text-blue-500' : 'text-slate-700'
+                                                        }`}>
+                                                        {format(day.date, 'd')}
+                                                        {day.holidayName && (
+                                                            <span className="ml-1 text-[8px] xl:text-[9px] text-red-500 font-medium truncate max-w-[40px] xl:max-w-[60px]" title={day.holidayName}>
+                                                                {day.holidayName}
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex flex-col items-center justify-start space-y-0.5 xl:space-y-1 mt-0.5 xl:mt-1 w-full flex-1 overflow-hidden">
+                                                    <div className="text-[9px] xl:text-[10px] text-slate-500 font-medium">
+                                                        {totalOff}人
+                                                    </div>
+                                                    <div className="w-full space-y-0.5 xl:space-y-1 px-0.5 xl:px-1 pt-1 pb-1 flex flex-col items-center overflow-y-auto shrink-0 custom-scrollbar">
+                                                        {employees.map(emp => {
+                                                            const s = getEffectiveShift(emp.id, day.dateStr);
+                                                            if (!s) return null;
+
+                                                            const isPending = `${emp.id}-${day.dateStr}` in pendingShifts;
+                                                            const style = getShiftStyle(s.type, isPending);
+
+                                                            const isSelectedEmployee = selectedEmployeeId === emp.id;
+                                                            let activeStyle = 'opacity-90';
+                                                            if (isSelectedEmployee) {
+                                                                const isRedOutline = s.type.includes('休日出勤') || s.type.includes('出張') || s.type.includes('特別休暇');
+                                                                activeStyle = `ring-2 ${isRedOutline ? 'ring-red-500' : 'ring-indigo-600'} ring-offset-[0.5px] scale-[1.05] z-10 font-extrabold shadow-md opacity-100`;
+                                                            }
+
+                                                            return (
+                                                                <DraggableShift
+                                                                    key={emp.id}
+                                                                    id={`shift-${emp.id}-${day.dateStr}`}
+                                                                    emp={emp}
+                                                                    date={day.dateStr}
+                                                                    type={s.type}
+                                                                    style={style}
+                                                                    activeStyle={activeStyle}
+                                                                >
+                                                                    {emp.alias || emp.name}
+                                                                </DraggableShift>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            </DroppableDateCell>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Right: Details & Validation */}
-                <div className="w-full xl:w-80 border-t xl:border-t-0 xl:border-l border-slate-200 bg-white flex flex-col shrink-0 min-h-[300px]">
-                    <div className="p-4 border-b border-slate-100 font-semibold text-slate-700 bg-slate-50/50 hidden xl:block">
-                        詳細情報
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                        <Card className="p-4 bg-blue-50/50 border-blue-100">
-                            <h3 className="font-bold text-sm mb-2 text-slate-700">
-                                {selectedDate
-                                    ? format(new Date(selectedDate), 'yyyy年M月d日(E)', { locale: ja })
-                                    : '月間情報'}
-                                の詳細
-                            </h3>
+                    {/* Right: Details & Validation */}
+                    <div className="w-full xl:w-80 border-t xl:border-t-0 xl:border-l border-slate-200 bg-white flex flex-col shrink-0 min-h-[300px]">
+                        <div className="p-4 border-b border-slate-100 font-semibold text-slate-700 bg-slate-50/50 hidden xl:block">
+                            詳細情報
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                            <Card className="p-4 bg-blue-50/50 border-blue-100">
+                                <h3 className="font-bold text-sm mb-2 text-slate-700">
+                                    {selectedDate
+                                        ? format(new Date(selectedDate), 'yyyy年M月d日(E)', { locale: ja })
+                                        : '月間情報'}
+                                    の詳細
+                                </h3>
 
-                            {selectedDate ? (
-                                <div className="space-y-3">
-                                    {selectedDaySchedule.length > 0 ? (
-                                        <div className="space-y-1">
-                                            <div className="text-xs text-slate-500 font-bold">登録済み予定:</div>
-                                            {selectedDaySchedule.map(s => (
-                                                <div key={s.id} className="text-xs bg-white p-1 rounded border border-slate-200">
-                                                    {s.employeeId
-                                                        ? `👤 ${employees.find(e => e.id === s.employeeId)?.name}: ${s.text}`
-                                                        : `📅 ${s.text}`
-                                                    }
+                                {selectedDate ? (
+                                    <div className="space-y-3">
+                                        {selectedDaySchedule.length > 0 ? (
+                                            <div className="space-y-1">
+                                                <div className="text-xs text-slate-500 font-bold">登録済み予定:</div>
+                                                {selectedDaySchedule.map(s => (
+                                                    <div key={s.id} className="text-xs bg-white p-1 rounded border border-slate-200">
+                                                        {s.employeeId
+                                                            ? `👤 ${employees.find(e => e.id === s.employeeId)?.name}: ${s.text}`
+                                                            : `📅 ${s.text}`
+                                                        }
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-xs text-slate-400 italic">登録されている予定はありません</p>
+                                        )}
+
+                                        <div className="border-t border-slate-200 pt-2">
+                                            <div className="text-xs text-slate-500 font-bold mb-1">シフト状況 (編集可):</div>
+                                            <div className="text-xs text-slate-600">
+                                                {selectedDayShifts.length > 0 && (
+                                                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                                        {selectedDayShifts.map(({ emp, shift }) => (
+                                                            <div key={emp.id} className="flex items-center justify-between gap-2 p-1 hover:bg-slate-50 rounded">
+                                                                <span className="truncate w-20" title={emp.name}>{emp.name}</span>
+                                                                <select
+                                                                    className="flex-1 h-7 text-[10px] sm:text-xs border-slate-200 rounded px-1 min-w-0"
+                                                                    value={shift.type}
+                                                                    onChange={(e) => {
+                                                                        if (!selectedDate) return;
+                                                                        setPendingShifts(prev => ({
+                                                                            ...prev,
+                                                                            [`${emp.id}-${selectedDate}`]: e.target.value
+                                                                        }));
+                                                                    }}
+                                                                >
+                                                                    {SHIFT_TYPES.map(type => (
+                                                                        <option key={type} value={type}>{type}</option>
+                                                                    ))}
+                                                                </select>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-7 w-7 text-slate-400 hover:text-red-500 hover:bg-red-50"
+                                                                    onClick={() => {
+                                                                        if (!selectedDate) return;
+                                                                        setPendingShifts(prev => ({
+                                                                            ...prev,
+                                                                            [`${emp.id}-${selectedDate}`]: '' // Mark for deletion
+                                                                        }));
+                                                                    }}
+                                                                >
+                                                                    <X className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-slate-500">日付を選択すると詳細が表示されます</p>
+                                )}
+                            </Card>
+
+                            <div className="border-t border-slate-100 pt-4">
+                                <div className="flex justify-between items-center mb-2">
+                                    <h3 className="font-bold text-sm text-slate-700">月間最終チェック</h3>
+                                    <Button size="sm" variant="outline" className="h-6 text-xs">更新</Button>
+                                </div>
+                                <Card className="p-3 bg-slate-50 border-slate-200">
+                                    {validationErrors.length === 0 ? (
+                                        <div className="text-xs text-green-600 font-bold flex items-center">
+                                            <span className="mr-1">✓</span> 問題ありません
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <div className="text-xs font-bold text-slate-700 border-b border-slate-200 pb-1 mb-1">
+                                                検証結果 ({validationErrors.length})
+                                            </div>
+                                            {validationErrors.map((error, idx) => (
+                                                <div
+                                                    key={idx}
+                                                    className={`text-[11px] p-2 rounded border ${error.type === 'error'
+                                                        ? 'bg-red-50 text-red-700 border-red-200'
+                                                        : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                                                        } cursor-pointer hover:opacity-80`}
+                                                    onClick={() => {
+                                                        if (error.date) setSelectedDate(error.date);
+                                                        if (error.employeeId) setSelectedEmployeeId(error.employeeId);
+                                                    }}
+                                                >
+                                                    <div className="font-bold mb-0.5 flex items-center">
+                                                        {error.type === 'error' ? '× エラー' : '⚠ 注意'}
+                                                    </div>
+                                                    {error.message}
                                                 </div>
                                             ))}
                                         </div>
-                                    ) : (
-                                        <p className="text-xs text-slate-400 italic">登録されている予定はありません</p>
                                     )}
-
-                                    <div className="border-t border-slate-200 pt-2">
-                                        <div className="text-xs text-slate-500 font-bold mb-1">シフト状況 (編集可):</div>
-                                        <div className="text-xs text-slate-600">
-                                            {selectedDayShifts.length > 0 && (
-                                                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                                                    {selectedDayShifts.map(({ emp, shift }) => (
-                                                        <div key={emp.id} className="flex items-center justify-between gap-2 p-1 hover:bg-slate-50 rounded">
-                                                            <span className="truncate w-20" title={emp.name}>{emp.name}</span>
-                                                            <select
-                                                                className="flex-1 h-7 text-[10px] sm:text-xs border-slate-200 rounded px-1 min-w-0"
-                                                                value={shift.type}
-                                                                onChange={(e) => {
-                                                                    if (!selectedDate) return;
-                                                                    setPendingShifts(prev => ({
-                                                                        ...prev,
-                                                                        [`${emp.id}-${selectedDate}`]: e.target.value
-                                                                    }));
-                                                                }}
-                                                            >
-                                                                {SHIFT_TYPES.map(type => (
-                                                                    <option key={type} value={type}>{type}</option>
-                                                                ))}
-                                                            </select>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-7 w-7 text-slate-400 hover:text-red-500 hover:bg-red-50"
-                                                                onClick={() => {
-                                                                    if (!selectedDate) return;
-                                                                    setPendingShifts(prev => ({
-                                                                        ...prev,
-                                                                        [`${emp.id}-${selectedDate}`]: '' // Mark for deletion
-                                                                    }));
-                                                                }}
-                                                            >
-                                                                <X className="h-4 w-4" />
-                                                            </Button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <p className="text-sm text-slate-500">日付を選択すると詳細が表示されます</p>
-                            )}
-                        </Card>
-
-                        <div className="border-t border-slate-100 pt-4">
-                            <div className="flex justify-between items-center mb-2">
-                                <h3 className="font-bold text-sm text-slate-700">月間最終チェック</h3>
-                                <Button size="sm" variant="outline" className="h-6 text-xs">更新</Button>
+                                </Card>
                             </div>
-                            <Card className="p-3 bg-slate-50 border-slate-200">
-                                {validationErrors.length === 0 ? (
-                                    <div className="text-xs text-green-600 font-bold flex items-center">
-                                        <span className="mr-1">✓</span> 問題ありません
-                                    </div>
-                                ) : (
-                                    <div className="space-y-2">
-                                        <div className="text-xs font-bold text-slate-700 border-b border-slate-200 pb-1 mb-1">
-                                            検証結果 ({validationErrors.length})
-                                        </div>
-                                        {validationErrors.map((error, idx) => (
-                                            <div
-                                                key={idx}
-                                                className={`text-[11px] p-2 rounded border ${error.type === 'error'
-                                                    ? 'bg-red-50 text-red-700 border-red-200'
-                                                    : 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                                                    } cursor-pointer hover:opacity-80`}
-                                                onClick={() => {
-                                                    if (error.date) setSelectedDate(error.date);
-                                                    if (error.employeeId) setSelectedEmployeeId(error.employeeId);
-                                                }}
-                                            >
-                                                <div className="font-bold mb-0.5 flex items-center">
-                                                    {error.type === 'error' ? '× エラー' : '⚠ 注意'}
-                                                </div>
-                                                {error.message}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </Card>
                         </div>
                     </div>
                 </div>
-            </div>
+
+                <DragOverlay dropAnimation={null}>
+                    {activeDragData && (
+                        <div
+                            className={`text-[8px] xl:text-[10px] px-0.5 py-0.5 rounded ${getShiftStyle(activeDragData.type, true)} truncate tracking-tighter w-full text-center shadow-md select-none h-[14px] xl:h-[18px] flex items-center justify-center cursor-grabbing ring-2 ring-blue-500 min-w-[50px]`}
+                            style={{ opacity: 0.9 }}
+                        >
+                            {employees.find(e => e.id === activeDragData.employeeId)?.alias || employees.find(e => e.id === activeDragData.employeeId)?.name}
+                        </div>
+                    )}
+                </DragOverlay>
+            </DndContext>
         </div>
     );
 }

@@ -11,6 +11,7 @@ import { getCalendarDays } from '@/lib/date-utils';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { ArrowRightLeft, Users, Pill, ClipboardList, FilePenLine, Printer, ChevronLeft, ChevronRight } from 'lucide-react';
+import { QRCodeDisplay } from '@/components/qrcode-display';
 import { getCurrentSession } from '@/actions/session';
 import type { SessionPayload } from '@/lib/session';
 
@@ -355,8 +356,11 @@ export default function ScheduleTasksPMPage() {
 
             <div className="flex-1 flex gap-4 min-h-0 overflow-visible print:block print:h-auto" id="pm-task-print-view">
                 <Card className="flex-1 flex flex-col overflow-hidden bg-white shadow-sm border-slate-200 print:shadow-none print:border-none print:overflow-visible print:block print:h-auto">
-                    <div className="no-print hidden print:block mb-4 text-center text-lg font-bold text-slate-800">
-                        {year}年 {month}月 第{weekOffset + 1}週 スケジュール(午後)
+                    <div className="no-print hidden print:flex items-center justify-between mb-4 border-b border-slate-200 pb-2">
+                        <div className="text-lg font-bold text-slate-800">
+                            {year}年 {month}月 第{weekOffset + 1}週 スケジュール(午後)
+                        </div>
+                        <QRCodeDisplay />
                     </div>
                     <div className="flex-1 overflow-auto custom-scrollbar print:overflow-visible print:block print:h-auto">
                         <table className="w-full xl:min-w-[800px] border-collapse text-[11px] xl:text-sm">

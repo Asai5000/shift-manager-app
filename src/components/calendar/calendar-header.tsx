@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { QRCodeDisplay } from '@/components/qrcode-display';
 
 interface CalendarHeaderProps {
     year: number;
@@ -38,7 +39,7 @@ export function CalendarHeader({ year, month }: CalendarHeaderProps) {
     };
 
     return (
-        <div className="flex items-center justify-between mb-2 xl:mb-4 gap-2">
+        <div className="flex items-center justify-between mb-2 xl:mb-4 gap-2 relative">
             <div className="flex items-center space-x-2 xl:space-x-4 overflow-hidden">
                 <h2 className="text-lg xl:text-2xl font-bold text-slate-900 whitespace-nowrap">
                     {year}年 {month}月
@@ -55,10 +56,14 @@ export function CalendarHeader({ year, month }: CalendarHeaderProps) {
                     </Button>
                 </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => window.print()} className="no-print h-8 xl:h-10 px-2 xl:px-4">
-                <Printer className="h-4 w-4 mr-1 xl:mr-2" />
-                <span className="hidden sm:inline">印刷</span>
-            </Button>
+
+            <div className="flex items-center gap-4">
+                <QRCodeDisplay />
+                <Button variant="outline" size="sm" onClick={() => window.print()} className="no-print h-8 xl:h-10 px-2 xl:px-4 shrink-0">
+                    <Printer className="h-4 w-4 mr-1 xl:mr-2" />
+                    <span className="hidden sm:inline">印刷</span>
+                </Button>
+            </div>
         </div>
     );
 }

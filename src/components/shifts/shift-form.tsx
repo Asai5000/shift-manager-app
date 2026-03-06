@@ -37,7 +37,7 @@ export function ShiftForm({ dateStr, employees, existingShifts, onSuccess, initi
     const defaultEmployeeId = initialValues?.employeeId || (session && session.role !== 'admin' ? session.id : '');
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | string>(defaultEmployeeId);
 
-    const [selectedType, setSelectedType] = useState<ShiftType>(initialValues?.type || '休み(終日)');
+    const [selectedType, setSelectedType] = useState<ShiftType>(initialValues?.type || '休日(1日)');
 
     async function handleAdd() {
         if (!selectedEmployeeId) return;

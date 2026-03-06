@@ -37,10 +37,12 @@ export async function authenticate(
         }
 
         // 3. 認証成功：CookieにJWTセッションを作成
+        const keepLoggedIn = formData.get('keepLoggedIn') === 'true';
         await createSession(
             user.id.toString(),
             user.name,
-            user.role as 'admin' | 'employee'
+            user.role as 'admin' | 'employee',
+            keepLoggedIn
         );
 
     } catch (error) {
