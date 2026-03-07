@@ -34,11 +34,16 @@ export async function saveShift(
             return { success: false, error: '他の従業員のシフトは編集できません' };
         }
 
-        // 1. Conflict Check logic for AM Tasks
         const typeStr = data.type as string;
-        const isRestingShift = typeStr.includes('休') || typeStr.includes('出張') || typeStr.includes('特別休暇');
+        // AM tasks are affected if the shift means absent in the morning
+        const isRestAM = [
+            '休日(1日)', '休日(午前)',
+            '希望休(1日)', '希望休(午前)',
+            '出張(1日)', '出張(午前)',
+            '特別休暇'
+        ].includes(typeStr);
 
-        if (!options?.forceOverride && isRestingShift) {
+        if (!options?.forceOverride && isRestAM) {
             const hasAMTaskRequest = await db.select().from(amAssignments)
                 .where(and(eq(amAssignments.employeeId, data.employeeId), eq(amAssignments.date, data.date)))
                 .limit(1);
@@ -76,11 +81,20 @@ export async function saveShift(
         }
 
         // 3. Mirror to AM Tasks if it implies an AM task change
+        const isRestAMTask = [
+            '休日(1日)', '休日(午前)',
+            '希望休(1日)', '希望休(午前)',
+            '出張(1日)', '出張(午前)',
+            '特別休暇'
+        ].includes(data.type);
+
         let newAMTask = '';
         if (data.type.includes('休日出勤') || data.type.includes('出勤')) newAMTask = data.type;
-        else if (data.type.includes('休')) newAMTask = '休';
-        else if (data.type.includes('出張')) newAMTask = '出張';
-        else if (data.type.includes('特別休暇')) newAMTask = '特別休暇';
+        else if (isRestAMTask) {
+            if (data.type.includes('出張')) newAMTask = '出張';
+            else if (data.type.includes('特別休暇')) newAMTask = '特別休暇';
+            else newAMTask = '休';
+        }
 
         if (newAMTask) {
             const existingAM = await db.select().from(amAssignments)
@@ -94,6 +108,18 @@ export async function saveShift(
                 await db.insert(amAssignments).values({
                     employeeId: data.employeeId, date: data.date, taskName: newAMTask, isAutoAssigned: false
                 });
+            }
+        } else {
+            // If the new shift is not an AM rest shift, but there was a previous AM rest assignment mapped to a resting type, we might want to clean it up depending on how it was previously handled.
+            // For now, if no newAMTask is needed, we don't automatically delete existing AM tasks unless they were '休' etc, which may conflict with user intent. Let's do a basic cleanup if it was '休'.
+            const existingAM = await db.select().from(amAssignments)
+                .where(and(eq(amAssignments.employeeId, data.employeeId), eq(amAssignments.date, data.date)))
+                .limit(1);
+            if (existingAM.length > 0) {
+                const taskName = existingAM[0].taskName;
+                if (taskName === '休' || taskName === '出張' || taskName === '特別休暇' || taskName.includes('出勤')) {
+                    await db.delete(amAssignments).where(eq(amAssignments.id, existingAM[0].id));
+                }
             }
         }
 
@@ -151,13 +177,21 @@ export async function deleteShift(id: number) {
                 return { success: false, error: '他の従業員のシフトは削除できません' };
             }
 
-            const isRestingShift = shift.type.includes('休') || shift.type.includes('出張') || shift.type.includes('特別休暇') || shift.type.includes('出勤');
+            const isRestAMTask = [
+                '休日(1日)', '休日(午前)',
+                '希望休(1日)', '希望休(午前)',
+                '出張(1日)', '出張(午前)',
+                '特別休暇'
+            ].includes(shift.type);
+
+            const isSpecialAMTask = shift.type.includes('出勤');
+            const shouldCleanupAMTask = isRestAMTask || isSpecialAMTask;
 
             // Delete the shift
             await db.delete(shifts).where(eq(shifts.id, id));
 
             // If it was a resting shift or special shift that forced an AM task, remove the AM task so it goes back to '未設定'
-            if (isRestingShift) {
+            if (shouldCleanupAMTask) {
                 const amTask = await db.select().from(amAssignments)
                     .where(and(eq(amAssignments.employeeId, shift.employeeId), eq(amAssignments.date, shift.date)))
                     .limit(1);
@@ -224,7 +258,15 @@ export async function bulkDeleteShifts(params: {
         const targetShifts = await db.select().from(shifts).where(and(...filters));
 
         if (targetShifts.length > 0) {
-            const restingShifts = targetShifts.filter((s: typeof targetShifts[number]) => s.type.includes('休') || s.type.includes('出張') || s.type.includes('特別休暇') || s.type.includes('出勤'));
+            const restingShifts = targetShifts.filter((s: typeof targetShifts[number]) => {
+                const isRestAMTask = [
+                    '休日(1日)', '休日(午前)',
+                    '希望休(1日)', '希望休(午前)',
+                    '出張(1日)', '出張(午前)',
+                    '特別休暇'
+                ].includes(s.type);
+                return isRestAMTask || s.type.includes('出勤');
+            });
             const holidayWorkDates = new Set<string>();
 
             // Delete shifts

@@ -258,13 +258,18 @@ export function CalendarGrid({ days, shifts, schedules, employees, session }: Ca
                                                     {employees.find(e => e.id === shift.employeeId)?.name || 'Unknown'}
                                                 </span>
                                                 <span className="hidden xl:inline print:inline text-[10px] truncate opacity-90 ml-1 shrink-0">
-                                                    {type.includes('休日出勤') && type.includes('(')
-                                                        ? type.split('(')[1].replace(')', '')
-                                                        : type === '出張(1日)'
-                                                            ? '出張'
-                                                            : type.includes('出張')
-                                                                ? type
-                                                                : type.replace(/\(.*\)/, '')}
+                                                    {(() => {
+                                                        if (type === '休日(1日)') return '休';
+                                                        if (type === '休日(午前)') return '休(午前)';
+                                                        if (type === '休日(午後)') return '休(午後)';
+                                                        if (type === '希望休(1日)') return '希望休';
+                                                        if (type === '希望休(午前)') return '希望休(午前)';
+                                                        if (type === '希望休(午後)') return '希望休(午後)';
+                                                        if (type === '出張(1日)') return '出張';
+                                                        if (type === '出勤(1日)') return '出勤';
+                                                        if (type.includes('休日出勤')) return type;
+                                                        return type.replace('(1日)', '');
+                                                    })()}
                                                 </span>
                                             </div>
                                         );

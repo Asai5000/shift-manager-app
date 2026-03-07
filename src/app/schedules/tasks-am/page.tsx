@@ -724,14 +724,21 @@ export default function ScheduleTasksAMPage() {
                                             let isAbsent = false;
                                             let absentReason = '休'; // Default UI label
 
-                                            // Replicate backend absent logic
+                                            // Replicate backend absent logic for AM
                                             const isHolidayWorkDay = holidayWorkDates.has(day.dateStr);
+                                            const isRestAMTask = [
+                                                '休日(1日)', '休日(午前)',
+                                                '希望休(1日)', '希望休(午前)',
+                                                '出張(1日)', '出張(午前)',
+                                                '特別休暇'
+                                            ].includes(shift || '');
+
                                             if (shift) {
-                                                if (shift.includes('休') && !shift.includes('休日出勤')) {
+                                                if (isRestAMTask) {
                                                     isAbsent = true;
-                                                } else if (shift.includes('出張') || shift.includes('特別休暇') || shift.includes('有給休暇')) {
-                                                    isAbsent = true;
-                                                    absentReason = shift;
+                                                    if (shift.includes('出張') || shift.includes('特別休暇') || shift.includes('有給休暇')) {
+                                                        absentReason = shift;
+                                                    }
                                                 }
                                             }
 

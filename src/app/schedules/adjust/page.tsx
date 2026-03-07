@@ -19,7 +19,7 @@ import { BulkDeleteModal } from '@/components/shifts/bulk-delete-modal';
 
 import {
     DndContext,
-    MouseSensor,
+    PointerSensor,
     useSensor,
     useSensors,
     useDraggable,
@@ -147,9 +147,9 @@ export default function ShiftAdjustmentPage() {
     // State for D&D
     const [activeDragData, setActiveDragData] = useState<any>(null);
 
-    // PC only: require small movement to drag (5px)
+    // PC/Mobile: require small movement to drag (5px)
     const sensors = useSensors(
-        useSensor(MouseSensor, {
+        useSensor(PointerSensor, {
             activationConstraint: {
                 distance: 5,
             },
@@ -157,7 +157,11 @@ export default function ShiftAdjustmentPage() {
     );
 
     const handleDragStart = (e: DragStartEvent) => {
-        setActiveDragData(e.active.data.current);
+        const data = e.active.data.current;
+        setActiveDragData(data);
+        if (data?.employeeId) {
+            setSelectedEmployeeId(data.employeeId);
+        }
     };
 
     const handleDragEnd = (e: DragEndEvent) => {
@@ -430,8 +434,8 @@ export default function ShiftAdjustmentPage() {
 
         // 3. Check for AM Task overlaps with absent mornings
         amAssignments.forEach(amTask => {
-            // Skip check if the AM task is empty or just explicitly "休" itself
-            if (!amTask.taskName || amTask.taskName === '休') return;
+            // Skip check if the AM task is empty, or explicitly "休" or "出張"
+            if (!amTask.taskName || amTask.taskName === '休' || amTask.taskName.includes('出張')) return;
 
             const shift = getEffectiveShift(amTask.employeeId, amTask.date);
             let isAbsentMorning = false;
@@ -605,7 +609,7 @@ export default function ShiftAdjustmentPage() {
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-4rem)]">
+        <div className="flex flex-col h-[calc(100dvh-8rem)]">
             {/* Loading Overlay */}
             {isSaving && (
                 <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center backdrop-blur-[1px]">
@@ -803,7 +807,7 @@ export default function ShiftAdjustmentPage() {
 
             {/* ... (Rest of the component remains largely the same) */}
             {/* Main Content (3 Columns) */}
-            <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            <DndContext sensors={sensors} autoScroll={true} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
                 <div className="flex-1 flex flex-col xl:flex-row overflow-auto xl:overflow-hidden bg-slate-50">
                     {/* Left: Employee Selection */}
                     <div className="w-full xl:w-48 border-b xl:border-b-0 xl:border-r border-slate-200 bg-white flex flex-col shrink-0">

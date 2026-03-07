@@ -46,7 +46,7 @@ export function NavBar({ session }: NavBarProps) {
 
     return (
         <nav className="sticky top-0 z-50 bg-white border-b border-slate-200 w-full">
-            <div className="container mx-auto px-4 max-w-7xl">
+            <div className="w-full px-4">
                 <div className="flex h-16 items-center justify-between">
                     <div className="flex items-center">
                         <div
