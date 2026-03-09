@@ -86,7 +86,7 @@ export function RecurringScheduleForm({ schedule, employees, onSuccess }: Recurr
         const data: AddScheduleData = {
             type: 'monthly_recurring',
             text: formData.text,
-            shortText: formData.shortText || undefined,
+            shortText: formData.shortText || null,
             weekNumber: Number(formData.weekNumber),
             dayOfWeek: Number(formData.dayOfWeek),
             // Convert empty string to null/undefined

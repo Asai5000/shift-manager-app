@@ -81,7 +81,7 @@ export type AddScheduleData = {
     weekNumber?: number;
     dayOfWeek?: number;
     text: string;
-    shortText?: string;
+    shortText?: string | null;
     isVisible: boolean;
     displayType: 'full' | 'short';
 };

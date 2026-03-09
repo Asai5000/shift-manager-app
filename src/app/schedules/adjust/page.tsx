@@ -883,23 +883,25 @@ export default function ShiftAdjustmentPage() {
                                                 shiftTypeStr={shift?.type}
                                                 isRedBackground={day.isHoliday || day.isSunday || holidayWorkDates.has(day.dateStr)}
                                             >
-                                                <div className="flex justify-center items-center">
+                                                <div className="flex justify-between items-center px-1">
                                                     <span className={`text-sm font-bold ${day.isSunday || day.holidayName ? 'text-red-500' :
                                                         day.isSaturday ? 'text-blue-500' : 'text-slate-700'
                                                         }`}>
                                                         {format(day.date, 'd')}
-                                                        {day.holidayName && (
-                                                            <span className="ml-1 text-[8px] xl:text-[9px] text-red-500 font-medium truncate max-w-[40px] xl:max-w-[60px]" title={day.holidayName}>
-                                                                {day.holidayName}
-                                                            </span>
-                                                        )}
                                                     </span>
+                                                    <div className="text-[9px] xl:text-[10px] text-slate-500 font-medium whitespace-nowrap">
+                                                        {totalOff}({pharmacistOff}/{assistantOff})
+                                                    </div>
                                                 </div>
+                                                {day.holidayName && (
+                                                    <div className="px-1 -mt-1 text-center">
+                                                        <span className="text-[8px] xl:text-[9px] text-red-500 font-medium truncate inline-block max-w-full" title={day.holidayName}>
+                                                            {day.holidayName}
+                                                        </span>
+                                                    </div>
+                                                )}
 
                                                 <div className="flex flex-col items-center justify-start space-y-0.5 xl:space-y-1 mt-0.5 xl:mt-1 w-full flex-1 overflow-hidden">
-                                                    <div className="text-[9px] xl:text-[10px] text-slate-500 font-medium">
-                                                        {totalOff}人
-                                                    </div>
                                                     <div className="w-full space-y-0.5 xl:space-y-1 px-0.5 xl:px-1 pt-1 pb-1 flex flex-col items-center overflow-y-auto shrink-0 custom-scrollbar">
                                                         {employees.map(emp => {
                                                             const s = getEffectiveShift(emp.id, day.dateStr);

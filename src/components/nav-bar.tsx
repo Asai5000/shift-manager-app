@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { CalendarDays, Users, Menu, X, Settings, CalendarClock } from 'lucide-react';
+import { CalendarDays, Users, Menu, X, Settings, CalendarClock, BookOpen } from 'lucide-react';
 import { useState } from 'react';
 import { useUnsavedChanges } from '@/components/providers/unsaved-changes-provider';
 import { logOut } from '@/actions/auth';
@@ -31,6 +31,12 @@ export function NavBar({ session }: NavBarProps) {
             label: '予定管理',
             icon: CalendarClock,
             active: pathname.startsWith('/schedules'),
+        },
+        {
+            href: '/manual',
+            label: 'マニュアル',
+            icon: BookOpen,
+            active: pathname === '/manual',
         },
         ...(session?.role === 'admin' ? [{
             href: '/settings',
