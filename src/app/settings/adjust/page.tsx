@@ -32,23 +32,24 @@ import {
 // Helper for shift styles
 const getShiftStyle = (type: string, isPending: boolean) => {
     if (isPending) return 'border-none bg-orange-100 text-orange-800 font-bold ring-1 ring-orange-400';
-    if (type.includes('希望')) return 'border-none bg-amber-100 text-amber-700';
+    if (type.includes('希望')) return 'border-none bg-blue-200 text-blue-800';
     if (type.includes('出勤') || type.includes('出張') || type.includes('休暇')) return 'border-red-200 bg-red-100 text-red-700 border';
     if (type.includes('休日') || type.includes('休み')) return 'border-none bg-slate-200 text-slate-600';
     return 'border-blue-200 bg-blue-100 text-blue-700 border';
 };
 
-function DraggableShift({ id, emp, date, type, style, activeStyle, children }: any) {
+function DraggableShift({ id, emp, date, type, style, activeStyle, disabled, children }: any) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id,
-        data: { employeeId: emp.id, sourceDate: date, type }
+        data: { employeeId: emp.id, sourceDate: date, type },
+        disabled: !!disabled
     });
     return (
         <div
             ref={setNodeRef}
-            {...listeners}
-            {...attributes}
-            className={`text-[8px] xl:text-[10px] px-0.5 py-0.5 rounded ${style} truncate tracking-tighter w-full text-center shadow-sm select-none h-[14px] xl:h-[18px] flex items-center justify-center transition-all ${activeStyle} cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-blue-400 ${isDragging ? 'opacity-30' : ''}`}
+            {...(disabled ? {} : listeners)}
+            {...(disabled ? {} : attributes)}
+            className={`text-[8px] xl:text-[10px] px-0.5 py-0.5 rounded ${style} truncate tracking-tighter w-full text-center shadow-sm select-none h-[14px] xl:h-[18px] flex items-center justify-center transition-all ${activeStyle} ${disabled ? 'cursor-default' : 'cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-blue-400'} ${isDragging ? 'opacity-30' : ''}`}
             title={`${emp.name}: ${type}`}
             onClick={(e) => {
                 e.stopPropagation();
@@ -926,6 +927,7 @@ export default function ShiftAdjustmentPage() {
                                                                     type={s.type}
                                                                     style={style}
                                                                     activeStyle={activeStyle}
+                                                                    disabled={s.type.includes('希望')}
                                                                 >
                                                                     {emp.alias || emp.name}
                                                                 </DraggableShift>

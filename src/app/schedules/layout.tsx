@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { CalendarClock, Settings, Calculator, LayoutList } from 'lucide-react';
+import { CalendarClock, Calculator, LayoutList } from 'lucide-react';
 
 export default function SchedulesLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -22,12 +22,6 @@ export default function SchedulesLayout({ children }: { children: React.ReactNod
             active: pathname.startsWith('/schedules/aggregation'),
         },
         {
-            href: '/schedules/holiday-work',
-            label: '休日出勤',
-            icon: CalendarClock,
-            active: pathname.startsWith('/schedules/holiday-work'),
-        },
-        {
             href: '/schedules/tasks-am',
             label: 'AM',
             icon: LayoutList,
@@ -38,12 +32,6 @@ export default function SchedulesLayout({ children }: { children: React.ReactNod
             label: 'PM',
             icon: LayoutList,
             active: pathname.startsWith('/schedules/tasks-pm'),
-        },
-        {
-            href: '/schedules/adjust',
-            label: '調整',
-            icon: Settings,
-            active: pathname.startsWith('/schedules/adjust'),
         },
     ];
 

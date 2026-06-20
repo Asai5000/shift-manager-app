@@ -219,7 +219,7 @@ export async function applyHolidayAssignment(previews: any[]) {
         if (newShifts.length > 0) {
             await db.insert(shifts).values(newShifts);
             revalidatePath('/');
-            revalidatePath('/schedules/holiday-work');
+            revalidatePath('/settings/holiday-work');
         }
 
         return { success: true };
@@ -250,7 +250,7 @@ export async function clearHolidayAssignment(startMonthStr: string, endMonthStr:
         );
 
         revalidatePath('/');
-        revalidatePath('/schedules/holiday-work');
+        revalidatePath('/settings/holiday-work');
 
         return { success: true, message: `指定期間の休日出勤シフトを削除しました。` };
     } catch (error) {
